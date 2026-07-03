@@ -8,6 +8,8 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -44,6 +46,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
@@ -88,6 +91,8 @@ fun PlayScreen(
 
     var episodesExpanded by remember { mutableStateOf(false) }
     var sortAscending by remember { mutableStateOf(true) }
+    var isPlayerMaximized by remember { mutableStateOf(false) }
+    var isPlayerFocused by remember { mutableStateOf(false) }
 
     // Player state for custom controls
     var isPlaying by remember { mutableStateOf(false) }
@@ -458,6 +463,12 @@ fun PlayScreen(
                             modifier = Modifier
                                 .fillMaxSize()
                                 .background(Color(0xFF1A1A1A))
+                                .onPreviewKeyEvent { event ->
+                                    if (event.type == KeyEventType.KeyDown && event.key == Key.Back && isPlayerMaximized) {
+                                        isPlayerMaximized = false
+                                        true
+                                    } else false
+                                }
                         ) {
                             Column(
                                 modifier = Modifier
@@ -474,6 +485,14 @@ fun PlayScreen(
                                             .weight(1f)
                                             .fillMaxHeight()
                                             .background(Color.Black)
+                                            .tvFocusable()
+                                            .onFocusChanged { isPlayerFocused = it.isFocused }
+                                            .onKeyEvent { event ->
+                                                if (event.type == KeyEventType.KeyDown && event.key == Key.Enter) {
+                                                    isPlayerMaximized = true
+                                                    true
+                                                } else false
+                                            }
                                     ) {
                                         AndroidView(
                                             factory = { ctx ->
@@ -592,9 +611,52 @@ fun PlayScreen(
                                                     color = Color(0xFF4CAF50)
                                                 )
                                             }
+                                            detail.area?.let { area ->
+                                                Text(
+                                                    text = area,
+                                                    style = MaterialTheme.typography.bodyLarge,
+                                                    color = Color.White.copy(alpha = 0.7f)
+                                                )
+                                            }
                                         }
 
-                                        Spacer(modifier = Modifier.height(16.dp))
+                                        Spacer(modifier = Modifier.height(12.dp))
+
+                                        // 演员
+                                        detail.actor?.let { actor ->
+                                            Text(
+                                                text = "演员：$actor",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = Color.White.copy(alpha = 0.7f),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                        }
+
+                                        // 导演
+                                        detail.director?.let { director ->
+                                            Text(
+                                                text = "导演：$director",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = Color.White.copy(alpha = 0.7f),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                        }
+
+                                        // 播放源
+                                        Text(
+                                            text = "播放源：${detail.sourceId}",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = Color.White.copy(alpha = 0.7f),
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+
+                                        Spacer(modifier = Modifier.height(8.dp))
 
                                         // 简介
                                         detail.content?.let { desc ->
@@ -642,151 +704,339 @@ fun PlayScreen(
                                 Spacer(modifier = Modifier.height(16.dp))
 
                                 // 下半部分：线路选择 + 选集（在播放器下方）
-                                // 线路选择器
-                                if (detail.playFrom.size > 1) {
-                                    Text(
-                                        text = "播放线路",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = Color.White
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    LazyRow(
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                    ) {
-                                        items(items = detail.playWithIndex) { (index, name) ->
-                                            var isFocused by remember { mutableStateOf(false) }
-                                            val lineBorderColor = if (isFocused) Color(0xFFFFD700) else Color(0xFF666666)
-                                            val bgColor = if (index == selectedLine) Color(0xFF4CAF50) else Color(0xFF333333)
-                                            Box(
-                                                modifier = Modifier
-                                                    .tvFocusable()
-                                                    .onFocusChanged { isFocused = it.isFocused }
-                                                    .clickable { viewModel.selectLine(index) }
-                                                    .background(bgColor, RoundedCornerShape(8.dp))
-                                                    .border(2.dp, lineBorderColor, RoundedCornerShape(8.dp))
-                                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                                            ) {
-                                                Text(
-                                                    text = name,
-                                                    color = Color.White,
-                                                    style = MaterialTheme.typography.bodyLarge
-                                                )
-                                            }
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                }
-
-                                // 剧集选择器标题
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                                Column(
+                                    modifier = Modifier.weight(1f)
                                 ) {
-                                    Text(
-                                        text = "选集",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        color = Color.White
-                                    )
-                                    var isSortFocused by remember { mutableStateOf(false) }
-                                    val sortBorderColor = if (isSortFocused) Color(0xFFFFD700) else Color(0xFF666666)
-
-                                    Row(
-                                        modifier = Modifier
-                                            .tvFocusable()
-                                            .onFocusChanged { isSortFocused = it.isFocused }
-                                            .background(Color(0xFF333333), RoundedCornerShape(8.dp))
-                                            .border(2.dp, sortBorderColor, RoundedCornerShape(8.dp))
-                                            .clickable { sortAscending = !sortAscending }
-                                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = if (sortAscending) "正序" else "倒序",
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = Color.White.copy(alpha = 0.7f)
-                                        )
-                                        Icon(
-                                            imageVector = Icons.Default.SwapVert,
-                                            contentDescription = "排序",
-                                            tint = Color.White.copy(alpha = 0.7f),
-                                            modifier = Modifier.size(18.dp)
-                                        )
-                                    }
-                                }
-
-                                Spacer(modifier = Modifier.height(8.dp))
-
-                                // 剧集列表
-                                val episodes = detail.episodes.getOrNull(selectedLine) ?: emptyList()
-                                val sortedEpisodes = if (sortAscending) episodes else episodes.reversed()
-                                if (sortedEpisodes.isNotEmpty()) {
-                                    LazyRow(
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                    ) {
-                                        itemsIndexed(items = sortedEpisodes) { index, episode ->
-                                            val isCurrentEpisode = episode.name == currentEpisodeName
-                                            val originalIndex = if (sortAscending) index else episodes.size - 1 - index
-                                            val isCached = originalIndex in cachedEpisodeIndices
-                                            var isFocused by remember { mutableStateOf(false) }
-                                            val episodeBorderColor = if (isFocused) Color(0xFFFFD700) else Color(0xFF666666)
-                                            val episodeBgColor = if (isCurrentEpisode) Color(0xFF4CAF50) else Color(0xFF333333)
-
-                                            Box(
-                                                modifier = Modifier
-                                                    .width(100.dp)
-                                                    .height(60.dp)
-                                                    .tvFocusable()
-                                                    .onFocusChanged { isFocused = it.isFocused }
-                                                    .clickable { viewModel.playEpisode(episode) }
-                                                    .background(episodeBgColor, RoundedCornerShape(8.dp))
-                                                    .border(2.dp, episodeBorderColor, RoundedCornerShape(8.dp))
-                                            ) {
-                                                Surface(
-                                                    shape = RoundedCornerShape(8.dp),
-                                                    color = if (isCurrentEpisode)
-                                                        Color(0xFF4CAF50)
-                                                    else
-                                                        Color(0xFF333333),
+                                    // 固定区域：线路选择 + 排序/范围按钮（不滚动）
+                                    // 线路选择器
+                                    if (detail.playFrom.size > 1) {
+                                        LazyRow(
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            items(items = detail.playWithIndex) { (index, name) ->
+                                                var isFocused by remember { mutableStateOf(false) }
+                                                val lineBorderColor = if (isFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                                                val bgColor = if (index == selectedLine) Color(0xFF4CAF50) else Color(0xFF333333)
+                                                Box(
                                                     modifier = Modifier
-                                                        .fillMaxSize()
+                                                        .tvFocusable()
+                                                        .onFocusChanged { isFocused = it.isFocused }
+                                                        .clickable { viewModel.selectLine(index) }
+                                                        .background(bgColor, RoundedCornerShape(8.dp))
+                                                        .border(2.dp, lineBorderColor, RoundedCornerShape(8.dp))
+                                                        .padding(horizontal = 16.dp, vertical = 8.dp)
                                                 ) {
-                                                    Column(
-                                                        modifier = Modifier
-                                                            .fillMaxSize()
-                                                            .padding(8.dp),
-                                                        horizontalAlignment = Alignment.CenterHorizontally,
-                                                        verticalArrangement = Arrangement.Center
-                                                    ) {
-                                                        Text(
-                                                            text = episode.name,
-                                                            style = MaterialTheme.typography.bodyMedium,
-                                                            color = Color.White,
-                                                            maxLines = 1,
-                                                            overflow = TextOverflow.Ellipsis
-                                                        )
-                                                    }
-                                                }
-                                                // Cached indicator dot
-                                                if (isCached) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .align(Alignment.TopEnd)
-                                                            .padding(4.dp)
-                                                            .size(8.dp)
-                                                            .background(
-                                                                color = Color(0xFFFFD700),
-                                                                shape = CircleShape
-                                                            )
+                                                    Text(
+                                                        text = name,
+                                                        color = Color.White,
+                                                        style = MaterialTheme.typography.bodyLarge
                                                     )
                                                 }
                                             }
                                         }
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                    }
+
+                                    // 排序 + 范围分组按钮行
+                                    val episodes = detail.episodes.getOrNull(selectedLine) ?: emptyList()
+                                    val sortedEpisodes = if (sortAscending) episodes else episodes.reversed()
+                                    val groupSize = 40
+                                    val totalEpisodes = episodes.size
+                                    val groupCount = (totalEpisodes + groupSize - 1) / groupSize
+                                    val episodeCols = 8
+
+                                    // 滚动状态（提前声明，供范围按钮和网格共用）
+                                    val episodeScrollState = rememberScrollState()
+                                    val density = LocalDensity.current
+                                    var scrollTarget by remember { mutableStateOf<Int?>(null) }
+                                    LaunchedEffect(scrollTarget) {
+                                        scrollTarget?.let { targetPx ->
+                                            episodeScrollState.animateScrollTo(targetPx)
+                                            scrollTarget = null
+                                        }
+                                    }
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        // 排序按钮
+                                        var isSortFocused by remember { mutableStateOf(false) }
+                                        val sortBorderColor = if (isSortFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                                        Box(
+                                            modifier = Modifier
+                                                .tvFocusable()
+                                                .onFocusChanged { isSortFocused = it.isFocused }
+                                                .background(Color(0xFF333333), RoundedCornerShape(8.dp))
+                                                .border(2.dp, sortBorderColor, RoundedCornerShape(8.dp))
+                                                .clickable { sortAscending = !sortAscending }
+                                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                        ) {
+                                            Text(
+                                                text = if (sortAscending) "倒序" else "正序",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = Color.White
+                                            )
+                                        }
+
+                                        // 箭头按钮
+                                        var isArrowFocused by remember { mutableStateOf(false) }
+                                        val arrowBorderColor = if (isArrowFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                                        Box(
+                                            modifier = Modifier
+                                                .tvFocusable()
+                                                .onFocusChanged { isArrowFocused = it.isFocused }
+                                                .background(Color(0xFF333333), RoundedCornerShape(8.dp))
+                                                .border(2.dp, arrowBorderColor, RoundedCornerShape(8.dp))
+                                                .clickable { sortAscending = !sortAscending }
+                                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = if (sortAscending) Icons.Default.ExpandMore else Icons.Default.ExpandLess,
+                                                contentDescription = "方向",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                        }
+
+                                        // 范围分组按钮
+                                    for (g in 0 until groupCount) {
+                                        val startIdx = g * groupSize + 1
+                                        val endIdx = minOf((g + 1) * groupSize, totalEpisodes)
+                                        var isGroupFocused by remember { mutableStateOf(false) }
+                                        val groupBorderColor = if (isGroupFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                                        // 计算该组第一集所在行，滚动到顶部（每行 48dp 高 + 8dp 间距 = 56dp）
+                                        val targetRow = (startIdx - 1) / episodeCols
+                                        val scrollPositionPx = with(density) { (targetRow * 56).dp.roundToPx() }
+                                        Box(
+                                            modifier = Modifier
+                                                .tvFocusable()
+                                                .onFocusChanged { isGroupFocused = it.isFocused }
+                                                .background(Color(0xFF333333), RoundedCornerShape(8.dp))
+                                                .border(2.dp, groupBorderColor, RoundedCornerShape(8.dp))
+                                                .clickable { scrollTarget = scrollPositionPx }
+                                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                                        ) {
+                                            Text(
+                                                text = "$startIdx-$endIdx",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = Color.White
+                                            )
+                                        }
+                                    }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(8.dp))
+
+                                    // 可滚动区域：剧集网格
+                                    Column(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .verticalScroll(episodeScrollState)
+                                    ) {
+                                        if (sortedEpisodes.isNotEmpty()) {
+                                            val episodeCols = 8
+                                            val episodeRows = (sortedEpisodes.size + episodeCols - 1) / episodeCols
+                                            for (row in 0 until episodeRows) {
+                                                Row(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                                ) {
+                                                    for (col in 0 until episodeCols) {
+                                                        val epIndex = row * episodeCols + col
+                                                        if (epIndex < sortedEpisodes.size) {
+                                                            val episode = sortedEpisodes[epIndex]
+                                                            val isCurrentEpisode = episode.name == currentEpisodeName
+                                                            val originalIndex = if (sortAscending) epIndex else episodes.size - 1 - epIndex
+                                                            val isCached = originalIndex in cachedEpisodeIndices
+                                                            var isFocused by remember { mutableStateOf(false) }
+                                                            val episodeBorderColor = if (isFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                                                            val episodeBgColor = if (isCurrentEpisode) Color(0xFF4CAF50) else Color(0xFF333333)
+
+                                                            Box(
+                                                                modifier = Modifier
+                                                                    .weight(1f)
+                                                                    .height(48.dp)
+                                                                    .tvFocusable()
+                                                                    .onFocusChanged { isFocused = it.isFocused }
+                                                                    .clickable { viewModel.playEpisode(episode) }
+                                                                    .background(episodeBgColor, RoundedCornerShape(8.dp))
+                                                                    .border(2.dp, episodeBorderColor, RoundedCornerShape(8.dp))
+                                                            ) {
+                                                                Text(
+                                                                    text = episode.name,
+                                                                    style = MaterialTheme.typography.bodyMedium,
+                                                                    color = Color.White,
+                                                                    maxLines = 1,
+                                                                    overflow = TextOverflow.Ellipsis,
+                                                                    modifier = Modifier
+                                                                        .align(Alignment.Center)
+                                                                        .padding(horizontal = 4.dp)
+                                                                )
+                                                                // Cached indicator dot
+                                                                if (isCached) {
+                                                                    Box(
+                                                                        modifier = Modifier
+                                                                            .align(Alignment.TopEnd)
+                                                                            .padding(4.dp)
+                                                                            .size(6.dp)
+                                                                            .background(
+                                                                                color = Color(0xFFFFD700),
+                                                                                shape = CircleShape
+                                                                            )
+                                                                    )
+                                                                }
+                                                            }
+                                                        } else {
+                                                            // 占位，保持列对齐
+                                                            Spacer(modifier = Modifier.weight(1f).height(48.dp))
+                                                        }
+                                                    }
+                                                }
+                                                if (row < episodeRows - 1) {
+                                                    Spacer(modifier = Modifier.height(8.dp))
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            } // end outer Column
+
+                            // 播放器最大化覆盖层
+                            if (isPlayerMaximized) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .background(Color.Black)
+                                        .tvFocusable()
+                                        .onFocusChanged { isPlayerFocused = it.isFocused }
+                                        .onKeyEvent { event ->
+                                            if (event.type == KeyEventType.KeyDown && event.key == Key.Enter) {
+                                                isPlayerMaximized = false
+                                                true
+                                            } else false
+                                        }
+                                ) {
+                                    AndroidView(
+                                        factory = { ctx ->
+                                            PlayerView(ctx).apply {
+                                                player = exoPlayer
+                                                useController = false
+                                                setBackgroundColor(android.graphics.Color.BLACK)
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+
+                                    // Gesture layer
+                                    Box(modifier = Modifier.fillMaxSize().then(gestureModifier))
+
+                                    // Seek indicator
+                                    seekIndicatorText?.let { text ->
+                                        Box(
+                                            modifier = Modifier.fillMaxSize(),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(
+                                                text = text,
+                                                color = Color.White,
+                                                fontSize = 20.sp,
+                                                fontWeight = FontWeight.Bold,
+                                                modifier = Modifier
+                                                    .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                                            )
+                                        }
+                                    }
+
+                                    if (controlsVisible) {
+                                        // Bottom: progress bar + time
+                                        Column(
+                                            modifier = Modifier
+                                                .align(Alignment.BottomCenter)
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 24.dp, vertical = 16.dp)
+                                        ) {
+                                            Slider(
+                                                value = if (isSeeking) seekPosition else if (totalDuration > 0) currentPosition.toFloat() / totalDuration.toFloat() else 0f,
+                                                onValueChange = { ratio ->
+                                                    isSeeking = true
+                                                    seekPosition = ratio
+                                                },
+                                                onValueChangeFinished = {
+                                                    val targetPosition = (seekPosition * totalDuration).toLong()
+                                                    exoPlayer.seekTo(targetPosition)
+                                                    currentPosition = targetPosition
+                                                    isSeeking = false
+                                                },
+                                                modifier = Modifier.fillMaxWidth(),
+                                                colors = SliderDefaults.colors(
+                                                    thumbColor = Color.White,
+                                                    activeTrackColor = Color.White,
+                                                    inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                                                )
+                                            )
+
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween
+                                            ) {
+                                                Text(
+                                                    text = formatTime(currentPosition),
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = Color.White
+                                                )
+                                                Text(
+                                                    text = formatTime(totalDuration),
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    color = Color.White.copy(alpha = 0.7f)
+                                                )
+                                            }
+                                        }
+
+                                        // Center play/pause button
+                                        Box(
+                                            modifier = Modifier
+                                                .align(Alignment.Center)
+                                                .size(64.dp)
+                                                .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                                .clickable {
+                                                    if (isPlaying) exoPlayer.pause() else exoPlayer.play()
+                                                }
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                                contentDescription = if (isPlaying) "暂停" else "播放",
+                                                tint = Color.White,
+                                                modifier = Modifier
+                                                    .align(Alignment.Center)
+                                                    .size(36.dp)
+                                            )
+                                        }
+
+                                        // Fullscreen toggle
+                                        Box(
+                                            modifier = Modifier
+                                                .align(Alignment.TopEnd)
+                                                .padding(16.dp)
+                                                .size(40.dp)
+                                                .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                                .clickable { viewModel.toggleFullscreen() }
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
+                                                contentDescription = "全屏",
+                                                tint = Color.White,
+                                                modifier = Modifier
+                                                    .align(Alignment.Center)
+                                                    .size(24.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }
-                        }
+                        } // end Box
                     } else {
                         // 手机模式：竖屏布局
                         LazyColumn(
