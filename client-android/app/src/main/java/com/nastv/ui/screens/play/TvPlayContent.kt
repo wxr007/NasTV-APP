@@ -15,7 +15,6 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.Fullscreen
 import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -24,7 +23,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.key.Key
@@ -77,6 +78,13 @@ fun TvPlayContent(
     var isPlayerMaximized by remember { mutableStateOf(false) }
     var isPlayerFocused by remember { mutableStateOf(false) }
 
+    val maximizedFocusRequester = remember { FocusRequester() }
+    LaunchedEffect(isPlayerMaximized) {
+        if (isPlayerMaximized) {
+            maximizedFocusRequester.requestFocus()
+        }
+    }
+
     val focusManager = LocalFocusManager.current
 
     fun Modifier.tvFocusable(): Modifier = this
@@ -93,363 +101,10 @@ fun TvPlayContent(
             } else false
         }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF1A1A1A))
-            .onPreviewKeyEvent { event ->
-                if (event.type == KeyEventType.KeyDown && event.key == Key.Back && isPlayerMaximized) {
-                    isPlayerMaximized = false
-                    true
-                } else false
-            }
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(24.dp)
-        ) {
-            // 上半部分：左侧播放器 + 右侧视频信息
-            Row(modifier = Modifier.weight(1f)) {
-                // 左侧：视频播放器
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .background(Color.Black)
-                        .tvFocusable()
-                        .onFocusChanged { isPlayerFocused = it.isFocused }
-                        .onKeyEvent { event ->
-                            if (event.type == KeyEventType.KeyDown && event.key == Key.Enter) {
-                                isPlayerMaximized = true
-                                true
-                            } else false
-                        }
-                ) {
-                    AndroidView(
-                        factory = { ctx ->
-                            PlayerView(ctx).apply {
-                                player = exoPlayer
-                                useController = false
-                                setBackgroundColor(android.graphics.Color.BLACK)
-                            }
-                        },
-                        modifier = Modifier.fillMaxSize()
-                    )
-
-                    Box(modifier = Modifier.fillMaxSize().then(gestureModifier))
-
-                    seekIndicatorText?.let { text ->
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = text,
-                                color = Color.White,
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold,
-                                modifier = Modifier
-                                    .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                            )
-                        }
-                    }
-
-                    if (controlsVisible) {
-                        Column(
-                            modifier = Modifier
-                                .align(Alignment.BottomCenter)
-                                .fillMaxWidth()
-                                .padding(horizontal = 24.dp, vertical = 16.dp)
-                        ) {
-                            Slider(
-                                value = if (isSeeking) seekPosition
-                                    else if (totalDuration > 0) currentPosition.toFloat() / totalDuration.toFloat()
-                                    else 0f,
-                                onValueChange = onSeekChange,
-                                onValueChangeFinished = {
-                                    onSeekStart()
-                                    onSeekFinished((seekPosition * totalDuration).toLong())
-                                },
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = SliderDefaults.colors(
-                                    thumbColor = Color.White,
-                                    activeTrackColor = Color.White,
-                                    inactiveTrackColor = Color.White.copy(alpha = 0.3f)
-                                )
-                            )
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(text = formatTime(currentPosition), style = MaterialTheme.typography.labelMedium, color = Color.White)
-                                Text(text = formatTime(totalDuration), style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.7f))
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(24.dp))
-
-                // 右侧：视频信息
-                Column(
-                    modifier = Modifier.weight(1f).fillMaxHeight()
-                ) {
-                    Text(
-                        text = detail.name,
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = Color.White,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        detail.year?.let { Text(text = it, style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha = 0.7f)) }
-                        detail.type?.let { Text(text = it, style = MaterialTheme.typography.bodyLarge, color = Color(0xFF4CAF50)) }
-                        detail.area?.let { Text(text = it, style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha = 0.7f)) }
-                    }
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    detail.actor?.let {
-                        Text(text = "演员：$it", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-                    detail.director?.let {
-                        Text(text = "导演：$it", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        Spacer(modifier = Modifier.height(4.dp))
-                    }
-                    Text(text = "播放源：${detail.sourceId}", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    detail.content?.let {
-                        Text(text = it, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.6f), maxLines = 5, overflow = TextOverflow.Ellipsis)
-                    }
-                    Spacer(modifier = Modifier.height(16.dp))
-
-                    // 收藏按钮
-                    var isFavoriteFocused by remember { mutableStateOf(false) }
-                    val favBorderColor = if (isFavoriteFocused) Color(0xFFFFD700) else Color(0xFF666666)
-                    Box(
-                        modifier = Modifier
-                            .tvFocusable()
-                            .onFocusChanged { isFavoriteFocused = it.isFocused }
-                            .clickable { onToggleFavorite() }
-                            .background(Color(0xFF2A2A2A), RoundedCornerShape(8.dp))
-                            .border(2.dp, favBorderColor, RoundedCornerShape(8.dp))
-                            .padding(8.dp)
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                contentDescription = "收藏",
-                                tint = if (isFavorite) Color(0xFFFF4081) else Color.White,
-                                modifier = Modifier.size(28.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = if (isFavorite) "已收藏" else "收藏",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = if (isFavorite) Color(0xFFFF4081) else Color.White
-                            )
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // 下半部分：线路选择 + 选集
-            Column(modifier = Modifier.weight(1f)) {
-                // 线路选择器
-                if (detail.playFrom.size > 1) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                        items(items = detail.playWithIndex) { (index, name) ->
-                            var isFocused by remember { mutableStateOf(false) }
-                            val lineBorderColor = if (isFocused) Color(0xFFFFD700) else Color(0xFF666666)
-                            val bgColor = if (index == selectedLine) Color(0xFF4CAF50) else Color(0xFF333333)
-                            Box(
-                                modifier = Modifier
-                                    .tvFocusable()
-                                    .onFocusChanged { isFocused = it.isFocused }
-                                    .clickable { onSelectLine(index) }
-                                    .background(bgColor, RoundedCornerShape(8.dp))
-                                    .border(2.dp, lineBorderColor, RoundedCornerShape(8.dp))
-                                    .padding(horizontal = 16.dp, vertical = 8.dp)
-                            ) {
-                                Text(text = name, color = Color.White, style = MaterialTheme.typography.bodyLarge)
-                            }
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
-
-                // 排序 + 范围分组按钮行
-                val episodes = detail.episodes.getOrNull(selectedLine) ?: emptyList()
-                val sortedEpisodes = if (sortAscending) episodes else episodes.reversed()
-                val groupSize = 40
-                val totalEpisodes = episodes.size
-                val groupCount = (totalEpisodes + groupSize - 1) / groupSize
-                val episodeCols = 8
-
-                val episodeScrollState = rememberScrollState()
-                val density = LocalDensity.current
-                var scrollTarget by remember { mutableStateOf<Int?>(null) }
-                LaunchedEffect(scrollTarget) {
-                    scrollTarget?.let { targetPx ->
-                        episodeScrollState.animateScrollTo(targetPx)
-                        scrollTarget = null
-                    }
-                }
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // 排序按钮
-                    var isSortFocused by remember { mutableStateOf(false) }
-                    val sortBorderColor = if (isSortFocused) Color(0xFFFFD700) else Color(0xFF666666)
-                    Box(
-                        modifier = Modifier
-                            .tvFocusable()
-                            .onFocusChanged { isSortFocused = it.isFocused }
-                            .background(Color(0xFF333333), RoundedCornerShape(8.dp))
-                            .border(2.dp, sortBorderColor, RoundedCornerShape(8.dp))
-                            .clickable { sortAscending = !sortAscending }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Text(text = if (sortAscending) "倒序" else "正序", style = MaterialTheme.typography.bodyMedium, color = Color.White)
-                    }
-
-                    // 箭头按钮
-                    var isArrowFocused by remember { mutableStateOf(false) }
-                    val arrowBorderColor = if (isArrowFocused) Color(0xFFFFD700) else Color(0xFF666666)
-                    Box(
-                        modifier = Modifier
-                            .tvFocusable()
-                            .onFocusChanged { isArrowFocused = it.isFocused }
-                            .background(Color(0xFF333333), RoundedCornerShape(8.dp))
-                            .border(2.dp, arrowBorderColor, RoundedCornerShape(8.dp))
-                            .clickable { sortAscending = !sortAscending }
-                            .padding(horizontal = 12.dp, vertical = 6.dp)
-                    ) {
-                        Icon(
-                            imageVector = if (sortAscending) Icons.Default.ExpandMore else Icons.Default.ExpandLess,
-                            contentDescription = "方向",
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-
-                    // 范围分组按钮
-                    for (g in 0 until groupCount) {
-                        val startIdx = g * groupSize + 1
-                        val endIdx = minOf((g + 1) * groupSize, totalEpisodes)
-                        var isGroupFocused by remember { mutableStateOf(false) }
-                        val groupBorderColor = if (isGroupFocused) Color(0xFFFFD700) else Color(0xFF666666)
-                        val targetRow = (startIdx - 1) / episodeCols
-                        val scrollPositionPx = with(density) { (targetRow * 56).dp.roundToPx() }
-                        Box(
-                            modifier = Modifier
-                                .tvFocusable()
-                                .onFocusChanged { isGroupFocused = it.isFocused }
-                                .background(Color(0xFF333333), RoundedCornerShape(8.dp))
-                                .border(2.dp, groupBorderColor, RoundedCornerShape(8.dp))
-                                .clickable { scrollTarget = scrollPositionPx }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                        ) {
-                            Text(text = "$startIdx-$endIdx", style = MaterialTheme.typography.bodyMedium, color = Color.White)
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
-
-                // 可滚动区域：剧集网格
-                Column(
-                    modifier = Modifier.weight(1f).verticalScroll(episodeScrollState)
-                ) {
-                    if (sortedEpisodes.isNotEmpty()) {
-                        val episodeRows = (sortedEpisodes.size + episodeCols - 1) / episodeCols
-                        for (row in 0 until episodeRows) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                for (col in 0 until episodeCols) {
-                                    val epIndex = row * episodeCols + col
-                                    if (epIndex < sortedEpisodes.size) {
-                                        val episode = sortedEpisodes[epIndex]
-                                        val isCurrentEpisode = episode.name == currentEpisodeName
-                                        val originalIndex = if (sortAscending) epIndex else episodes.size - 1 - epIndex
-                                        val isCached = originalIndex in cachedEpisodeIndices
-                                        var isFocused by remember { mutableStateOf(false) }
-                                        val epBorderColor = if (isFocused) Color(0xFFFFD700) else Color(0xFF666666)
-                                        val epBgColor = if (isCurrentEpisode) Color(0xFF4CAF50) else Color(0xFF333333)
-
-                                        Box(
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .height(48.dp)
-                                                .tvFocusable()
-                                                .onFocusChanged { isFocused = it.isFocused }
-                                                .clickable { onPlayEpisode(episode) }
-                                                .background(epBgColor, RoundedCornerShape(8.dp))
-                                                .border(2.dp, epBorderColor, RoundedCornerShape(8.dp))
-                                        ) {
-                                            Text(
-                                                text = episode.name,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = Color.White,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                                modifier = Modifier.align(Alignment.Center).padding(horizontal = 4.dp)
-                                            )
-                                            if (isCached) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .align(Alignment.TopEnd)
-                                                        .padding(4.dp)
-                                                        .size(6.dp)
-                                                        .background(color = Color(0xFFFFD700), shape = CircleShape)
-                                                )
-                                            }
-                                        }
-                                    } else {
-                                        Spacer(modifier = Modifier.weight(1f).height(48.dp))
-                                    }
-                                }
-                            }
-                            if (row < episodeRows - 1) {
-                                Spacer(modifier = Modifier.height(8.dp))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        // 播放器最大化覆盖层
-        if (isPlayerMaximized) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black)
-                    .tvFocusable()
-                    .onFocusChanged { isPlayerFocused = it.isFocused }
-                    .onKeyEvent { event ->
-                        if (event.type == KeyEventType.KeyDown && event.key == Key.Enter) {
-                            isPlayerMaximized = false
-                            true
-                        } else false
-                    }
-            ) {
+    // 共享的播放器内容（只有一个 PlayerView，在普通/最大化模式间移动）
+    val playerContent = remember {
+        movableContentOf {
+            Box(modifier = Modifier.fillMaxSize()) {
                 AndroidView(
                     factory = { ctx ->
                         PlayerView(ctx).apply {
@@ -479,6 +134,41 @@ fun TvPlayContent(
                         )
                     }
                 }
+            }
+        }
+    }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFF1A1A1A))
+            .onPreviewKeyEvent { event ->
+                if (event.type == KeyEventType.KeyDown && event.key == Key.Back && isPlayerMaximized) {
+                    isPlayerMaximized = false
+                    true
+                } else false
+            }
+    ) {
+        if (isPlayerMaximized) {
+            // 最大化模式：全屏播放器 + 控制层
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black)
+                    .focusRequester(maximizedFocusRequester)
+                    .clickable { onPlayPause() }
+                    .onKeyEvent { event ->
+                        if (event.type == KeyEventType.KeyDown) {
+                            when (event.key) {
+                                Key.Back -> { isPlayerMaximized = false; true }
+                                Key.DirectionRight, Key.DirectionLeft,
+                                Key.DirectionUp, Key.DirectionDown -> true
+                                else -> false
+                            }
+                        } else false
+                    }
+            ) {
+                playerContent()
 
                 if (controlsVisible) {
                     Column(
@@ -496,7 +186,9 @@ fun TvPlayContent(
                                 onSeekStart()
                                 onSeekFinished((seekPosition * totalDuration).toLong())
                             },
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusProperties { canFocus = false },
                             colors = SliderDefaults.colors(
                                 thumbColor = Color.White,
                                 activeTrackColor = Color.White,
@@ -517,7 +209,6 @@ fun TvPlayContent(
                             .align(Alignment.Center)
                             .size(64.dp)
                             .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                            .clickable { onPlayPause() }
                     ) {
                         Icon(
                             imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
@@ -533,14 +224,316 @@ fun TvPlayContent(
                             .padding(16.dp)
                             .size(40.dp)
                             .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                            .clickable { onToggleFullscreen() }
                     ) {
                         Icon(
-                            imageVector = if (isFullscreen) Icons.Default.FullscreenExit else Icons.Default.Fullscreen,
-                            contentDescription = "全屏",
+                            imageVector = Icons.Default.FullscreenExit,
+                            contentDescription = "退出最大化",
                             tint = Color.White,
                             modifier = Modifier.align(Alignment.Center).size(24.dp)
                         )
+                    }
+                }
+            }
+        } else {
+            // 普通模式
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(24.dp)
+            ) {
+                // 上半部分：左侧播放器 + 右侧视频信息
+                Row(modifier = Modifier.weight(1f)) {
+                    // 左侧：视频播放器
+                    val playerBorderColor = if (isPlayerFocused) Color(0xFFFFD700) else Color.Transparent
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(Color.Black)
+                            .border(3.dp, playerBorderColor, RoundedCornerShape(4.dp))
+                            .tvFocusable()
+                            .onFocusChanged { isPlayerFocused = it.isFocused }
+                            .clickable { isPlayerMaximized = true }
+                    ) {
+                        playerContent()
+
+                        if (controlsVisible) {
+                            Column(
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 24.dp, vertical = 16.dp)
+                            ) {
+                                Slider(
+                                    value = if (isSeeking) seekPosition
+                                        else if (totalDuration > 0) currentPosition.toFloat() / totalDuration.toFloat()
+                                        else 0f,
+                                    onValueChange = onSeekChange,
+                                    onValueChangeFinished = {
+                                        onSeekStart()
+                                        onSeekFinished((seekPosition * totalDuration).toLong())
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .focusProperties { canFocus = false },
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = Color.White,
+                                        activeTrackColor = Color.White,
+                                        inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                                    )
+                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(text = formatTime(currentPosition), style = MaterialTheme.typography.labelMedium, color = Color.White)
+                                    Text(text = formatTime(totalDuration), style = MaterialTheme.typography.labelMedium, color = Color.White.copy(alpha = 0.7f))
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(24.dp))
+
+                    // 右侧：视频信息
+                    Column(
+                        modifier = Modifier.weight(1f).fillMaxHeight()
+                    ) {
+                        Text(
+                            text = detail.name,
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = Color.White,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            detail.year?.let { Text(text = it, style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha = 0.7f)) }
+                            detail.type?.let { Text(text = it, style = MaterialTheme.typography.bodyLarge, color = Color(0xFF4CAF50)) }
+                            detail.area?.let { Text(text = it, style = MaterialTheme.typography.bodyLarge, color = Color.White.copy(alpha = 0.7f)) }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        detail.actor?.let {
+                            Text(text = "演员：$it", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
+                        detail.director?.let {
+                            Text(text = "导演：$it", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                            Spacer(modifier = Modifier.height(4.dp))
+                        }
+                        Text(text = "播放源：${detail.sourceId}", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        detail.content?.let {
+                            Text(text = it, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.6f), maxLines = 5, overflow = TextOverflow.Ellipsis)
+                        }
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // 收藏按钮
+                        var isFavoriteFocused by remember { mutableStateOf(false) }
+                        val favBorderColor = if (isFavoriteFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                        Box(
+                            modifier = Modifier
+                                .tvFocusable()
+                                .onFocusChanged { isFavoriteFocused = it.isFocused }
+                                .clickable { onToggleFavorite() }
+                                .background(Color(0xFF2A2A2A), RoundedCornerShape(8.dp))
+                                .border(2.dp, favBorderColor, RoundedCornerShape(8.dp))
+                                .padding(8.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                    contentDescription = "收藏",
+                                    tint = if (isFavorite) Color(0xFFFF4081) else Color.White,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = if (isFavorite) "已收藏" else "收藏",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = if (isFavorite) Color(0xFFFF4081) else Color.White
+                                )
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // 下半部分：线路选择 + 选集
+                Column(modifier = Modifier.weight(1f)) {
+                    // 线路选择器
+                    if (detail.playFrom.size > 1) {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            items(items = detail.playWithIndex) { (index, name) ->
+                                var isFocused by remember { mutableStateOf(false) }
+                                val lineBorderColor = if (isFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                                val bgColor = if (index == selectedLine) Color(0xFF4CAF50) else Color(0xFF333333)
+                                Box(
+                                    modifier = Modifier
+                                        .tvFocusable()
+                                        .onFocusChanged { isFocused = it.isFocused }
+                                        .clickable { onSelectLine(index) }
+                                        .background(bgColor, RoundedCornerShape(8.dp))
+                                        .border(2.dp, lineBorderColor, RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                                ) {
+                                    Text(text = name, color = Color.White, style = MaterialTheme.typography.bodyLarge)
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+
+                    // 排序 + 范围分组按钮行
+                    val episodes = detail.episodes.getOrNull(selectedLine) ?: emptyList()
+                    val sortedEpisodes = if (sortAscending) episodes else episodes.reversed()
+                    val groupSize = 40
+                    val totalEpisodes = episodes.size
+                    val groupCount = (totalEpisodes + groupSize - 1) / groupSize
+                    val episodeCols = 8
+
+                    val episodeScrollState = rememberScrollState()
+                    val density = LocalDensity.current
+                    var scrollTarget by remember { mutableStateOf<Int?>(null) }
+                    LaunchedEffect(scrollTarget) {
+                        scrollTarget?.let { targetPx ->
+                            episodeScrollState.animateScrollTo(targetPx)
+                            scrollTarget = null
+                        }
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // 排序按钮
+                        var isSortFocused by remember { mutableStateOf(false) }
+                        val sortBorderColor = if (isSortFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                        Box(
+                            modifier = Modifier
+                                .tvFocusable()
+                                .onFocusChanged { isSortFocused = it.isFocused }
+                                .background(Color(0xFF333333), RoundedCornerShape(8.dp))
+                                .border(2.dp, sortBorderColor, RoundedCornerShape(8.dp))
+                                .clickable { sortAscending = !sortAscending }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Text(text = if (sortAscending) "倒序" else "正序", style = MaterialTheme.typography.bodyMedium, color = Color.White)
+                        }
+
+                        // 箭头按钮
+                        var isArrowFocused by remember { mutableStateOf(false) }
+                        val arrowBorderColor = if (isArrowFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                        Box(
+                            modifier = Modifier
+                                .tvFocusable()
+                                .onFocusChanged { isArrowFocused = it.isFocused }
+                                .background(Color(0xFF333333), RoundedCornerShape(8.dp))
+                                .border(2.dp, arrowBorderColor, RoundedCornerShape(8.dp))
+                                .clickable { sortAscending = !sortAscending }
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        ) {
+                            Icon(
+                                imageVector = if (sortAscending) Icons.Default.ExpandMore else Icons.Default.ExpandLess,
+                                contentDescription = "方向",
+                                tint = Color.White,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        // 范围分组按钮
+                        for (g in 0 until groupCount) {
+                            val startIdx = g * groupSize + 1
+                            val endIdx = minOf((g + 1) * groupSize, totalEpisodes)
+                            var isGroupFocused by remember { mutableStateOf(false) }
+                            val groupBorderColor = if (isGroupFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                            val targetRow = (startIdx - 1) / episodeCols
+                            val scrollPositionPx = with(density) { (targetRow * 56).dp.roundToPx() }
+                            Box(
+                                modifier = Modifier
+                                    .tvFocusable()
+                                    .onFocusChanged { isGroupFocused = it.isFocused }
+                                    .background(Color(0xFF333333), RoundedCornerShape(8.dp))
+                                    .border(2.dp, groupBorderColor, RoundedCornerShape(8.dp))
+                                    .clickable { scrollTarget = scrollPositionPx }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text(text = "$startIdx-$endIdx", style = MaterialTheme.typography.bodyMedium, color = Color.White)
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // 可滚动区域：剧集网格
+                    Column(
+                        modifier = Modifier.weight(1f).verticalScroll(episodeScrollState)
+                    ) {
+                        if (sortedEpisodes.isNotEmpty()) {
+                            val episodeRows = (sortedEpisodes.size + episodeCols - 1) / episodeCols
+                            for (row in 0 until episodeRows) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    for (col in 0 until episodeCols) {
+                                        val epIndex = row * episodeCols + col
+                                        if (epIndex < sortedEpisodes.size) {
+                                            val episode = sortedEpisodes[epIndex]
+                                            val isCurrentEpisode = episode.name == currentEpisodeName
+                                            val originalIndex = if (sortAscending) epIndex else episodes.size - 1 - epIndex
+                                            val isCached = originalIndex in cachedEpisodeIndices
+                                            var isFocused by remember { mutableStateOf(false) }
+                                            val epBorderColor = if (isFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                                            val epBgColor = if (isCurrentEpisode) Color(0xFF4CAF50) else Color(0xFF333333)
+
+                                            Box(
+                                                modifier = Modifier
+                                                    .weight(1f)
+                                                    .height(48.dp)
+                                                    .tvFocusable()
+                                                    .onFocusChanged { isFocused = it.isFocused }
+                                                    .clickable { onPlayEpisode(episode) }
+                                                    .background(epBgColor, RoundedCornerShape(8.dp))
+                                                    .border(2.dp, epBorderColor, RoundedCornerShape(8.dp))
+                                            ) {
+                                                Text(
+                                                    text = episode.name,
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = Color.White,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.align(Alignment.Center).padding(horizontal = 4.dp)
+                                                )
+                                                if (isCached) {
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .align(Alignment.TopEnd)
+                                                            .padding(4.dp)
+                                                            .size(6.dp)
+                                                            .background(color = Color(0xFFFFD700), shape = CircleShape)
+                                                    )
+                                                }
+                                            }
+                                        } else {
+                                            Spacer(modifier = Modifier.weight(1f).height(48.dp))
+                                        }
+                                    }
+                                }
+                                if (row < episodeRows - 1) {
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                }
+                            }
+                        }
                     }
                 }
             }
