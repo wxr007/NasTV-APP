@@ -99,6 +99,11 @@ fun PlayScreen(
         }
     }
 
+    // 全屏时按返回键退出全屏而不是退出页面
+    androidx.activity.compose.BackHandler(enabled = isFullscreen) {
+        viewModel.toggleFullscreen()
+    }
+
     // Auto-hide controls when playing
     LaunchedEffect(isPlaying, controlsVisible) {
         if (isPlaying && controlsVisible) {

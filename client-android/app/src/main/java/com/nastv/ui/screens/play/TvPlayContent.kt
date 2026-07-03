@@ -87,6 +87,11 @@ fun TvPlayContent(
         }
     }
 
+    // 全屏时按返回键先退出全屏
+    androidx.activity.compose.BackHandler(enabled = isPlayerMaximized) {
+        isPlayerMaximized = false
+    }
+
     val focusManager = LocalFocusManager.current
 
     fun Modifier.tvFocusable(): Modifier = this
