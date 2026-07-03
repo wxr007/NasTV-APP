@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.FullscreenExit
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
@@ -73,6 +74,7 @@ fun TvPlayContent(
     onSeekChange: (Float) -> Unit,
     onSeekStart: () -> Unit,
     onPlayPause: () -> Unit,
+    seekDuration: Int = 10,
 ) {
     var sortAscending by remember { mutableStateOf(true) }
     var isPlayerMaximized by remember { mutableStateOf(false) }
@@ -155,13 +157,22 @@ fun TvPlayContent(
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color.Black)
-                    .focusRequester(maximizedFocusRequester)
                     .clickable { onPlayPause() }
+                    .focusRequester(maximizedFocusRequester)
                     .onKeyEvent { event ->
                         if (event.type == KeyEventType.KeyDown) {
                             when (event.key) {
                                 Key.Back -> { isPlayerMaximized = false; true }
-                                Key.DirectionRight, Key.DirectionLeft,
+                                Key.DirectionLeft -> {
+                                    val newPos = (currentPosition - seekDuration * 1000L).coerceAtLeast(0)
+                                    exoPlayer.seekTo(newPos)
+                                    true
+                                }
+                                Key.DirectionRight -> {
+                                    val newPos = (currentPosition + seekDuration * 1000L).coerceAtMost(totalDuration)
+                                    exoPlayer.seekTo(newPos)
+                                    true
+                                }
                                 Key.DirectionUp, Key.DirectionDown -> true
                                 else -> false
                             }
@@ -169,6 +180,37 @@ fun TvPlayContent(
                     }
             ) {
                 playerContent()
+
+                // 暂停时显示半透明播放图标 + 时间（AndroidView 之上无法用普通 Compose 覆盖）
+                if (!isPlaying && !controlsVisible) {
+                    Column(
+                        modifier = Modifier.align(Alignment.Center),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(80.dp)
+                                .background(Color.Black.copy(alpha = 0.4f), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = "已暂停",
+                                tint = Color.White.copy(alpha = 0.8f),
+                                modifier = Modifier.size(48.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(
+                            text = "${formatTime(currentPosition)} / ${formatTime(totalDuration)}",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.White.copy(alpha = 0.8f),
+                            modifier = Modifier
+                                .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                        )
+                    }
+                }
 
                 if (controlsVisible) {
                     Column(
@@ -204,18 +246,50 @@ fun TvPlayContent(
                         }
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .size(64.dp)
-                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
-                            contentDescription = if (isPlaying) "暂停" else "播放",
-                            tint = Color.White,
-                            modifier = Modifier.align(Alignment.Center).size(36.dp)
-                        )
+                    if (!isPlaying) {
+                        // 暂停时：大图标 + 时间
+                        Column(
+                            modifier = Modifier.align(Alignment.Center),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(80.dp)
+                                    .background(Color.Black.copy(alpha = 0.4f), CircleShape),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = "已暂停",
+                                    tint = Color.White.copy(alpha = 0.8f),
+                                    modifier = Modifier.size(48.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = "${formatTime(currentPosition)} / ${formatTime(totalDuration)}",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Color.White.copy(alpha = 0.8f),
+                                modifier = Modifier
+                                    .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            )
+                        }
+                    } else {
+                        // 播放时：小暂停按钮
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .size(64.dp)
+                                .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Pause,
+                                contentDescription = "暂停",
+                                tint = Color.White,
+                                modifier = Modifier.align(Alignment.Center).size(36.dp)
+                            )
+                        }
                     }
 
                     Box(
@@ -326,41 +400,92 @@ fun TvPlayContent(
                             Text(text = "导演：$it", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Spacer(modifier = Modifier.height(4.dp))
                         }
-                        Text(text = "播放源：${detail.sourceId}", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(text = "站源：${detail.sourceId}", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Spacer(modifier = Modifier.height(4.dp))
                         Spacer(modifier = Modifier.height(8.dp))
 
                         detail.content?.let {
-                            Text(text = it, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.6f), maxLines = 5, overflow = TextOverflow.Ellipsis)
+                            Text(text = it, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.6f), maxLines = 4, overflow = TextOverflow.Ellipsis)
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
 
-                        // 收藏按钮
-                        var isFavoriteFocused by remember { mutableStateOf(false) }
-                        val favBorderColor = if (isFavoriteFocused) Color(0xFFFFD700) else Color(0xFF666666)
-                        Box(
-                            modifier = Modifier
-                                .tvFocusable()
-                                .onFocusChanged { isFavoriteFocused = it.isFocused }
-                                .clickable { onToggleFavorite() }
-                                .background(Color(0xFF2A2A2A), RoundedCornerShape(8.dp))
-                                .border(2.dp, favBorderColor, RoundedCornerShape(8.dp))
-                                .padding(8.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                    contentDescription = "收藏",
-                                    tint = if (isFavorite) Color(0xFFFF4081) else Color.White,
-                                    modifier = Modifier.size(28.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = if (isFavorite) "已收藏" else "收藏",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = if (isFavorite) Color(0xFFFF4081) else Color.White
-                                )
+                        Spacer(modifier = Modifier.weight(1f))
+
+                        // 收藏 + 简介 按钮
+                        var showDescriptionDialog by remember { mutableStateOf(false) }
+                        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                            var isFavoriteFocused by remember { mutableStateOf(false) }
+                            val favBorderColor = if (isFavoriteFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                            Box(
+                                modifier = Modifier
+                                    .tvFocusable()
+                                    .onFocusChanged { isFavoriteFocused = it.isFocused }
+                                    .clickable { onToggleFavorite() }
+                                    .background(Color(0xFF2A2A2A), RoundedCornerShape(8.dp))
+                                    .border(2.dp, favBorderColor, RoundedCornerShape(8.dp))
+                                    .padding(8.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                        contentDescription = "收藏",
+                                        tint = if (isFavorite) Color(0xFFFF4081) else Color.White,
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = if (isFavorite) "已收藏" else "收藏",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = if (isFavorite) Color(0xFFFF4081) else Color.White
+                                    )
+                                }
                             }
+
+                            // 简介按钮（与收藏按钮等大）
+                            if (detail.content != null) {
+                                var isDescFocused by remember { mutableStateOf(false) }
+                                val descBorderColor = if (isDescFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                                Box(
+                                    modifier = Modifier
+                                        .tvFocusable()
+                                        .onFocusChanged { isDescFocused = it.isFocused }
+                                        .clickable { showDescriptionDialog = true }
+                                        .background(Color(0xFF2A2A2A), RoundedCornerShape(8.dp))
+                                        .border(2.dp, descBorderColor, RoundedCornerShape(8.dp))
+                                        .padding(8.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(
+                                            imageVector = Icons.Default.Info,
+                                            contentDescription = "简介",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(28.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(text = "简介", style = MaterialTheme.typography.bodyLarge, color = Color.White)
+                                    }
+                                }
+                            }
+                        }
+
+                        // 简介弹窗
+                        if (showDescriptionDialog) {
+                            AlertDialog(
+                                onDismissRequest = { showDescriptionDialog = false },
+                                title = { Text(text = detail.name, style = MaterialTheme.typography.titleMedium) },
+                                text = {
+                                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                                        Text(
+                                            text = detail.content ?: "",
+                                            style = MaterialTheme.typography.bodyMedium
+                                        )
+                                    }
+                                },
+                                confirmButton = {
+                                    TextButton(onClick = { showDescriptionDialog = false }) {
+                                        Text("关闭")
+                                    }
+                                }
+                            )
                         }
                     }
                 }

@@ -98,7 +98,15 @@ class PlayViewModel @Inject constructor(
                             val restoredEpisode = lineEpisodes[restoredEpisodeIndex]
                             _currentEpisodeUrl.value = restoredEpisode.url
                             _currentEpisodeName.value = restoredEpisode.name
+                            // 异步加载缓存状态后尝试缓存播放
+                            loadCacheStatus(sourceId, videoId, onReady = {
+                                playEpisode(restoredEpisode)
+                            })
+                        } else {
+                            loadCacheStatus(sourceId, videoId)
                         }
+                    } else {
+                        loadCacheStatus(sourceId, videoId)
                     }
 
                     // Save the progress position to restore after player is ready
@@ -107,7 +115,6 @@ class PlayViewModel @Inject constructor(
                     }
 
                     checkFavoriteStatus(sourceId, videoId)
-                    loadCacheStatus(sourceId, videoId)
                 }
                 is Result.Error -> {
                     _errorMessage.value = result.exception.message
@@ -128,7 +135,7 @@ class PlayViewModel @Inject constructor(
         }
     }
 
-    private fun loadCacheStatus(sourceId: String, videoId: String) {
+    private fun loadCacheStatus(sourceId: String, videoId: String, onReady: (() -> Unit)? = null) {
         viewModelScope.launch {
             val result = playRepository.getCacheStatus(sourceId, videoId)
             if (result is Result.Success) {
@@ -138,6 +145,7 @@ class PlayViewModel @Inject constructor(
                     .toSet()
                 _cachedEpisodeIndices.value = cachedIndices
             }
+            onReady?.invoke()
         }
     }
 
@@ -169,19 +177,47 @@ class PlayViewModel @Inject constructor(
     }
 
     fun selectLine(lineIndex: Int) {
+        val oldLine = _selectedLine.value
         _selectedLine.value = lineIndex
-        val detail = _videoDetail.value
-        if (detail != null && lineIndex < detail.episodes.size && detail.episodes[lineIndex].isNotEmpty()) {
-            val firstEpisode = detail.episodes[lineIndex][0]
-            _currentEpisodeUrl.value = firstEpisode.url
-            _currentEpisodeName.value = firstEpisode.name
-        }
+        val detail = _videoDetail.value ?: return
+        if (lineIndex >= detail.episodes.size) return
+
+        val newLineEpisodes = detail.episodes[lineIndex]
+        if (newLineEpisodes.isEmpty()) return
+
+        // 按位置匹配：用当前剧集在旧线路中的位置选新线路对应位置的剧集
+        val oldLineEpisodes = detail.episodes.getOrNull(oldLine) ?: emptyList()
+        val currentIdx = oldLineEpisodes.indexOfFirst { it.url == _currentEpisodeUrl.value }
+        val targetIdx = if (currentIdx >= 0) currentIdx.coerceIn(0, newLineEpisodes.size - 1) else 0
+        val episode = newLineEpisodes[targetIdx]
+
+        _currentEpisodeUrl.value = episode.url
+        _currentEpisodeName.value = episode.name
+        playEpisode(episode)
     }
 
     fun playEpisode(episode: Episode) {
         _currentEpisodeName.value = episode.name
+        _currentEpisodeUrl.value = episode.url
         viewModelScope.launch {
-            when (val result = playRepository.proxyM3u8(episode.url)) {
+            val detail = _videoDetail.value
+            val episodes = detail?.episodes?.getOrNull(_selectedLine.value) ?: emptyList()
+            val episodeIndex = episodes.indexOfFirst { it.url == episode.url }
+
+            android.util.Log.d("PlayViewModel", "playEpisode: idx=$episodeIndex, cached=${_cachedEpisodeIndices.value}, url=${episode.url}")
+
+            // 已缓存则使用本地缓存播放
+            if (episodeIndex >= 0 && episodeIndex in _cachedEpisodeIndices.value) {
+                val baseUrl = preferencesRepository.getServerUrl()
+                val cacheUrl = "$baseUrl/api/cache/${detail!!.sourceId}/${detail.id}/$episodeIndex.m3u8"
+                android.util.Log.d("PlayViewModel", "Using cache: $cacheUrl")
+                _proxyUrl.value = cacheUrl
+                return@launch
+            }
+
+            android.util.Log.d("PlayViewModel", "Using resolve API for: ${episode.url}")
+            // 未缓存则通过 resolve 接口获取播放地址
+            when (val result = playRepository.resolvePlayUrl(episode.url)) {
                 is Result.Success -> {
                     _proxyUrl.value = result.data
                 }

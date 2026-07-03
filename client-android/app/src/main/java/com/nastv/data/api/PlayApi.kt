@@ -3,9 +3,13 @@ package com.nastv.data.api
 import com.nastv.data.model.ApiResponse
 import com.nastv.data.model.CacheStatusResponse
 import com.nastv.data.model.VideoDetail
+import com.squareup.moshi.JsonClass
 import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
+
+@JsonClass(generateAdapter = false)
+data class ResolveResponse(val url: String)
 
 interface PlayApi {
 
@@ -20,13 +24,13 @@ interface PlayApi {
     ): ApiResponse<VideoDetail>
 
     /**
-     * GET /api/play/m3u8?url=
-     * Proxy m3u8 playlist through the backend.
+     * GET /api/play/resolve?url=
+     * Resolve playback URL to real m3u8 address.
      */
-    @GET("api/play/m3u8")
-    suspend fun proxyM3u8(
+    @GET("api/play/resolve")
+    suspend fun resolvePlayUrl(
         @Query("url") url: String
-    ): ApiResponse<String>
+    ): ApiResponse<ResolveResponse>
 
     /**
      * GET /api/cache/status/:sourceId/:videoId

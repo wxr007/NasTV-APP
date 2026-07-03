@@ -144,9 +144,23 @@ fun PlayScreen(
                         ExoPlayer.Builder(context).build().apply {
                             playWhenReady = true
                             addListener(object : Player.Listener {
-                                override fun onIsPlayingChanged(playing: Boolean) { isPlaying = playing }
+                                override fun onIsPlayingChanged(playing: Boolean) {
+                                    android.util.Log.d("ExoPlayer", "onIsPlayingChanged: $playing")
+                                    isPlaying = playing
+                                }
                                 override fun onPlaybackStateChanged(state: Int) {
+                                    val stateStr = when (state) {
+                                        Player.STATE_IDLE -> "IDLE"
+                                        Player.STATE_BUFFERING -> "BUFFERING"
+                                        Player.STATE_READY -> "READY"
+                                        Player.STATE_ENDED -> "ENDED"
+                                        else -> "UNKNOWN"
+                                    }
+                                    android.util.Log.d("ExoPlayer", "onPlaybackStateChanged: $stateStr, duration=$duration")
                                     if (state == Player.STATE_READY) totalDuration = duration
+                                }
+                                override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                                    android.util.Log.e("ExoPlayer", "onPlayerError: ${error.errorCodeName}, ${error.message}", error)
                                 }
                             })
                         }
@@ -167,7 +181,17 @@ fun PlayScreen(
 
                     LaunchedEffect(playUrl) {
                         playUrl?.let { url ->
-                            exoPlayer.setMediaItem(MediaItem.fromUri(url))
+                            // 缓存 URL 不以 .m3u8 结尾，需要显式指定 MIME 类型
+                            val isCacheUrl = url.contains("/api/cache/m3u8/")
+                            val mediaItem = if (isCacheUrl) {
+                                MediaItem.Builder()
+                                    .setUri(url)
+                                    .setMimeType("application/vnd.apple.mpegurl")
+                                    .build()
+                            } else {
+                                MediaItem.fromUri(url)
+                            }
+                            exoPlayer.setMediaItem(mediaItem)
                             exoPlayer.prepare()
                         }
                     }
@@ -342,7 +366,7 @@ fun PlayScreen(
                         TvPlayContent(
                             detail = detail,
                             exoPlayer = exoPlayer,
-                            gestureModifier = gestureModifier,
+                            gestureModifier = Modifier,  // TV模式不使用触屏手势
                             seekIndicatorText = seekIndicatorText,
                             controlsVisible = controlsVisible,
                             isPlaying = isPlaying,
@@ -369,6 +393,7 @@ fun PlayScreen(
                             onPlayPause = {
                                 if (isPlaying) exoPlayer.pause() else exoPlayer.play()
                             },
+                            seekDuration = seekDuration,
                         )
                     } else {
                         // 手机端布局

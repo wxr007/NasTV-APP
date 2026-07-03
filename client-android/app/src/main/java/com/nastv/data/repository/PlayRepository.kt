@@ -22,13 +22,13 @@ class PlayRepository @Inject constructor(
         }
     }
 
-    suspend fun proxyM3u8(url: String): Result<String> {
+    suspend fun resolvePlayUrl(url: String): Result<String> {
         return safeApiCall {
-            val response = playApi.proxyM3u8(url)
+            val response = playApi.resolvePlayUrl(url)
             if (response.isSuccess && response.data != null) {
-                response.data
+                response.data.url
             } else {
-                throw ApiException(response.message ?: "Failed to proxy m3u8")
+                throw ApiException(response.message ?: "Failed to resolve play url")
             }
         }
     }

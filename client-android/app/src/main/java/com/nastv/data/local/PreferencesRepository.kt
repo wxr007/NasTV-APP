@@ -8,6 +8,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import com.nastv.utils.Constants
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -51,11 +52,9 @@ class PreferencesRepository @Inject constructor(
     }
 
     suspend fun getServerUrl(): String {
-        var result = Constants.DEFAULT_BASE_URL
-        dataStore.data.map { preferences ->
+        return dataStore.data.map { preferences ->
             preferences[SERVER_URL_KEY] ?: Constants.DEFAULT_BASE_URL
-        }.collect { result = it }
-        return result
+        }.first()
     }
 
     suspend fun saveServerUrl(url: String) {

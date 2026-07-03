@@ -108,26 +108,31 @@ GET /api/play/detail?sourceId=dyttzyapi&id=123
 { "code": 0, "data": { "id": "123", "name": "标题", "pic": "url", "year": "2024","area": "地区", "type": "分类", "actor": "演员", "director": "导演", "content": "简介", "playFrom": ["线路1"], "episodes": [[{ "name": "第1集", "url": "..." }]], "sourceId": "dyttzyapi" } }
 ```
 
-### 9. 代理 m3u8 播放列表
+### 9. 播放视频
+
+播放分为两种模式：
+
+**前端播放**：未缓存时，前端先调 resolve 接口将播放 URL 解析为真实 m3u8 地址，然后直连播放。
+
+**缓存播放**：已缓存的剧集会使用本地缓存的 m3u8 和 TS 分片播放：
+- `GET /api/cache/m3u8/:sourceId/:videoId/:episodeIndex` — 获取缓存的 m3u8 播放列表
+- `GET /api/cache/ts/:sourceId/:videoId/:episodeIndex/:filename` — 获取缓存的 TS 分片
+
+详见缓存相关接口章节。
+
+### 10. 解析播放 URL
 ```
-GET /api/play/m3u8?url=https://...
+GET /api/play/resolve?url=https://...
 ```
 | 参数 | 说明 |
 |------|------|
-| url | 远程 m3u8 地址 |
-| raw | 可选，设 `1` 时原样返回不重写 URL（用于缓存下载） |
+| url | 播放 URL（可能是 share 页面） |
 
-说明：代理获取并返回 m3u8 内容，`Content-Type: application/vnd.apple.mpegurl`。支持解析 share 页面提取真实 m3u8 URL。
-
-### 10. 代理 TS 分片
+说明：解析 share 页面提取真实 m3u8 URL，如果已经是 m3u8 地址则直接返回。用于前端播放前获取可播放的直链。
+响应：
+```json
+{ "code": 0, "data": { "url": "https://.../index.m3u8" } }
 ```
-GET /api/play/ts?url=https://...
-```
-| 参数 | 说明 |
-|------|------|
-| url | 远程 TS 地址 |
-
-说明：代理获取并返回 TS 二进制数据，`Content-Type: video/MP2T`
 
 ### 11. 代理图片
 ```
@@ -228,7 +233,7 @@ GET /api/favorites
   "code": 0,
   "data": {
     "dyttzyapi:80982": {
-      "name": "女神“异世界转生想成为什么”我“勇者的肋骨”",
+      "name": "标题",
       "pic": "https://vod.dyttimage.com/upload/vod/20260408-1/0f811249c21dd914c79287cce8e292a8.webp",
       "remark": "已完结"
     }
@@ -538,15 +543,15 @@ GET /api/cache/ts/:sourceId/:videoId/:episodeIndex/:filename
 
 ### 39. 获取缓存的 m3u8 播放列表
 ```
-GET /api/cache/m3u8/:sourceId/:videoId/:episodeIndex
+GET /api/cache/:sourceId/:videoId/:episodeIndex.m3u8
 ```
 | 参数 | 说明 |
 |------|------|
 | sourceId | 视频源 ID（路径参数） |
 | videoId | 视频 ID（路径参数） |
-| episodeIndex | 剧集索引（路径参数） |
+| episodeIndex | 剧集索引（路径参数，末尾带 `.m3u8` 后缀） |
 
-说明：用于缓存剧集的本地点播播放。`Content-Type: application/vnd.apple.mpegurl`
+说明：用于缓存剧集的本地点播播放，URL 以 `.m3u8` 结尾以便播放器识别。`Content-Type: application/vnd.apple.mpegurl`
 
 ---
 

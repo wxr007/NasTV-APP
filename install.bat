@@ -4,14 +4,14 @@ cd /d "%~dp0client-android"
 
 set APK_DIR=app\build\outputs\apk\debug
 
-REM ²éÕÒÏÖÓÐµÄ APK
+REM æŸ¥æ‰¾çŽ°æœ‰çš„ APK
 set "APK_FILE="
 for %%f in (%APK_DIR%\app-*-debug.apk) do (
     set "APK_FILE=%%f"
     goto :install
 )
 
-REM Ã»ÕÒµ½£¬ÏÈ±àÒë
+REM æ²¡æ‰¾åˆ°ï¼Œå…ˆç¼–è¯‘
 echo APK not found, building first...
 call .\gradlew.bat assembleDebug
 if %errorlevel% neq 0 (
@@ -32,7 +32,7 @@ if "%APK_FILE%"=="" (
     exit /b 1
 )
 echo Installing %APK_FILE% to device...
-adb install -r "%APK_FILE%"
+adb -d install -r "%APK_FILE%"
 if %errorlevel% equ 0 (
     echo Install success!
 ) else (
