@@ -37,7 +37,7 @@ class MainActivity : ComponentActivity() {
                 if (forceTvMode) true else DeviceUtils.isTvDevice(context)
             }
 
-            NasTVTheme {
+            NasTVTheme(isTv = isTv) {
                 CompositionLocalProvider(LocalIsTv provides isTv) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),

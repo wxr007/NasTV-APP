@@ -43,15 +43,21 @@ private val LightColorScheme = lightColorScheme(
 @Composable
 fun NasTVTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
+    isTv: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme
+    // TV 端强制使用暗色主题
+    val colorScheme = when {
+        isTv -> DarkColorScheme
+        darkTheme -> DarkColorScheme
+        else -> LightColorScheme
+    }
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
             window.statusBarColor = colorScheme.background.toArgb()
-            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
+            WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme && !isTv
         }
     }
 
