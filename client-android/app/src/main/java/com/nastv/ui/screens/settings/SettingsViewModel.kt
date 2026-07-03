@@ -1,0 +1,75 @@
+package com.nastv.ui.screens.settings
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.nastv.data.local.PreferencesRepository
+import com.nastv.utils.ImageUrlHelper
+import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import javax.inject.Inject
+
+@HiltViewModel
+class SettingsViewModel @Inject constructor(
+    private val preferencesRepository: PreferencesRepository
+) : ViewModel() {
+
+    private val _useImageProxy = MutableStateFlow(true)
+    val useImageProxy: StateFlow<Boolean> = _useImageProxy.asStateFlow()
+
+    private val _seekDuration = MutableStateFlow(10)
+    val seekDuration: StateFlow<Int> = _seekDuration.asStateFlow()
+
+    private val _forceTvMode = MutableStateFlow(false)
+    val forceTvMode: StateFlow<Boolean> = _forceTvMode.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            _useImageProxy.value = preferencesRepository.useImageProxyFlow.first()
+            _seekDuration.value = preferencesRepository.seekDurationFlow.first()
+            _forceTvMode.value = preferencesRepository.forceTvModeFlow.first()
+        }
+    }
+
+    suspend fun getServerUrl(): String {
+        return preferencesRepository.getServerUrl()
+    }
+
+    fun saveServerUrl(url: String, onComplete: () -> Unit) {
+        viewModelScope.launch {
+            preferencesRepository.saveServerUrl(url)
+            onComplete()
+        }
+    }
+
+    fun setUseImageProxy(useProxy: Boolean) {
+        _useImageProxy.value = useProxy
+        ImageUrlHelper.setUseImageProxy(useProxy)
+        viewModelScope.launch {
+            preferencesRepository.saveUseImageProxy(useProxy)
+        }
+    }
+
+    fun setSeekDuration(seconds: Int) {
+        _seekDuration.value = seconds
+        viewModelScope.launch {
+            preferencesRepository.saveSeekDuration(seconds)
+        }
+    }
+
+    fun setForceTvMode(force: Boolean) {
+        _forceTvMode.value = force
+        viewModelScope.launch {
+            preferencesRepository.saveForceTvMode(force)
+        }
+    }
+
+    fun logout() {
+        viewModelScope.launch {
+            preferencesRepository.clearAuth()
+        }
+    }
+}
