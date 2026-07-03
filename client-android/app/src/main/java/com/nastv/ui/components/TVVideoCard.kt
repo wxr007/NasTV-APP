@@ -1,6 +1,7 @@
 package com.nastv.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -43,13 +44,12 @@ fun TVVideoCard(
         modifier = modifier
             .width(180.dp)
             .focusProperties { canFocus = true }
-            .clickable(onClick = onClick)
             .onFocusChanged { focusState ->
                 isFocused = focusState.isFocused
             }
-            .background(borderColor, RoundedCornerShape(8.dp))
-            .padding(2.dp)
-            .background(Color.Transparent, RoundedCornerShape(6.dp))
+            .clickable(onClick = onClick)
+            .background(Color.Transparent, RoundedCornerShape(8.dp))
+            .border(2.dp, borderColor, RoundedCornerShape(8.dp))
     ) {
         Box {
             // Poster (vertical, 2:3 aspect ratio)

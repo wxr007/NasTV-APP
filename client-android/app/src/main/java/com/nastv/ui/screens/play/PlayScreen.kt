@@ -611,15 +611,14 @@ fun PlayScreen(
 
                                         // 收藏按钮
                                         var isFavoriteFocused by remember { mutableStateOf(false) }
-                                        val borderColor = if (isFavoriteFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                                        val favoriteBorderColor = if (isFavoriteFocused) Color(0xFFFFD700) else Color(0xFF666666)
                                         Box(
                                             modifier = Modifier
                                                 .tvFocusable()
-                                                .clickable { viewModel.toggleFavorite() }
                                                 .onFocusChanged { isFavoriteFocused = it.isFocused }
-                                                .background(borderColor, RoundedCornerShape(8.dp))
-                                                .padding(2.dp)
-                                                .background(Color(0xFF2A2A2A), RoundedCornerShape(6.dp))
+                                                .clickable { viewModel.toggleFavorite() }
+                                                .background(Color(0xFF2A2A2A), RoundedCornerShape(8.dp))
+                                                .border(2.dp, favoriteBorderColor, RoundedCornerShape(8.dp))
                                                 .padding(8.dp)
                                         ) {
                                             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -656,16 +655,15 @@ fun PlayScreen(
                                     ) {
                                         items(items = detail.playWithIndex) { (index, name) ->
                                             var isFocused by remember { mutableStateOf(false) }
-                                            val borderColor = if (isFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                                            val lineBorderColor = if (isFocused) Color(0xFFFFD700) else Color(0xFF666666)
                                             val bgColor = if (index == selectedLine) Color(0xFF4CAF50) else Color(0xFF333333)
                                             Box(
                                                 modifier = Modifier
                                                     .tvFocusable()
-                                                    .clickable { viewModel.selectLine(index) }
                                                     .onFocusChanged { isFocused = it.isFocused }
-                                                    .background(borderColor, RoundedCornerShape(8.dp))
-                                                    .padding(2.dp)
-                                                    .background(bgColor, RoundedCornerShape(6.dp))
+                                                    .clickable { viewModel.selectLine(index) }
+                                                    .background(bgColor, RoundedCornerShape(8.dp))
+                                                    .border(2.dp, lineBorderColor, RoundedCornerShape(8.dp))
                                                     .padding(horizontal = 16.dp, vertical = 8.dp)
                                             ) {
                                                 Text(
@@ -740,11 +738,10 @@ fun PlayScreen(
                                                     .width(100.dp)
                                                     .height(60.dp)
                                                     .tvFocusable()
-                                                    .clickable { viewModel.playEpisode(episode) }
                                                     .onFocusChanged { isFocused = it.isFocused }
-                                                    .background(episodeBorderColor, RoundedCornerShape(8.dp))
-                                                    .padding(2.dp)
-                                                    .background(episodeBgColor, RoundedCornerShape(6.dp))
+                                                    .clickable { viewModel.playEpisode(episode) }
+                                                    .background(episodeBgColor, RoundedCornerShape(8.dp))
+                                                    .border(2.dp, episodeBorderColor, RoundedCornerShape(8.dp))
                                             ) {
                                                 Surface(
                                                     shape = RoundedCornerShape(8.dp),
