@@ -2,11 +2,13 @@ package com.nastv.ui.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -33,6 +35,164 @@ fun VideoGrid(
     savedScrollOffset: Int = 0,
     onScrollStateChanged: (index: Int, offset: Int) -> Unit = { _, _ -> }
 ) {
+    // TV 模式使用 5 列，手机端使用 3 列
+    val columns = if (isTv) 5 else 3
+    val spacing = if (isTv) 16.dp else 8.dp
+
+    if (isTv) {
+        TvModeGrid(
+            videos = videos,
+            onVideoClick = onVideoClick,
+            onLoadMore = onLoadMore,
+            isLoadingMore = isLoadingMore,
+            hasMore = hasMore,
+            columns = columns,
+            spacing = spacing,
+            modifier = modifier,
+            savedScrollIndex = savedScrollIndex,
+            savedScrollOffset = savedScrollOffset,
+            onScrollStateChanged = onScrollStateChanged
+        )
+    } else {
+        PhoneModeGrid(
+            videos = videos,
+            onVideoClick = onVideoClick,
+            onLoadMore = onLoadMore,
+            isLoadingMore = isLoadingMore,
+            hasMore = hasMore,
+            columns = columns,
+            spacing = spacing,
+            modifier = modifier,
+            savedScrollIndex = savedScrollIndex,
+            savedScrollOffset = savedScrollOffset,
+            onScrollStateChanged = onScrollStateChanged
+        )
+    }
+}
+
+@Composable
+private fun TvModeGrid(
+    videos: List<Video>,
+    onVideoClick: (String, String) -> Unit,
+    onLoadMore: () -> Unit,
+    isLoadingMore: Boolean,
+    hasMore: Boolean,
+    columns: Int,
+    spacing: androidx.compose.ui.unit.Dp,
+    modifier: Modifier,
+    savedScrollIndex: Int,
+    savedScrollOffset: Int,
+    onScrollStateChanged: (index: Int, offset: Int) -> Unit
+) {
+    val listState = rememberLazyListState()
+
+    // 将视频按行分组
+    val rows by remember(videos, columns) {
+        derivedStateOf { videos.chunked(columns) }
+    }
+
+    // 从播放页返回时，savedScrollIndex 是视频索引，转为行索引
+    val savedRowIndex = if (savedScrollIndex > 0) savedScrollIndex / columns else 0
+
+    // 保存滚动位置（保存为行索引）
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.firstVisibleItemIndex }.collect { rowIndex ->
+            onScrollStateChanged(rowIndex * columns, 0)
+        }
+    }
+
+    // 从播放页返回后恢复滚动位置
+    LaunchedEffect(Unit) {
+        if (savedRowIndex > 0 && rows.size > savedRowIndex) {
+            delay(100)
+            listState.scrollToItem(savedRowIndex)
+            delay(300)
+            listState.scrollToItem(savedRowIndex)
+        }
+    }
+
+    // 加载更多检测（最后一行可见时触发）
+    val shouldLoadMore by remember {
+        derivedStateOf {
+            val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0
+            hasMore && !isLoadingMore && rows.isNotEmpty() && lastVisibleItem >= rows.size - 2
+        }
+    }
+    LaunchedEffect(shouldLoadMore) {
+        if (shouldLoadMore) {
+            delay(200)
+            onLoadMore()
+        }
+    }
+
+    // 初始加载更多
+    LaunchedEffect(rows.size, hasMore, isLoadingMore) {
+        if (hasMore && !isLoadingMore && rows.isNotEmpty() && rows.size < 4) {
+            delay(300)
+            onLoadMore()
+        }
+    }
+
+    Box(modifier = modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = spacing),
+            contentPadding = PaddingValues(vertical = spacing),
+            verticalArrangement = Arrangement.spacedBy(spacing)
+        ) {
+            itemsIndexed(
+                items = rows,
+                key = { rowIndex, _ -> "row_$rowIndex" }
+            ) { rowIndex, rowVideos ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(spacing)
+                ) {
+                    rowVideos.forEachIndexed { colIndex, video ->
+                        val videoIndex = rowIndex * columns + colIndex
+                        TVVideoCard(
+                            video = video,
+                            onClick = { onVideoClick(video.sourceId, video.id) },
+                            modifier = Modifier.weight(1f),
+                            shouldAutoFocus = savedScrollIndex > 0 && videoIndex == savedScrollIndex
+                        )
+                    }
+                    // 填充剩余空间，保持最后一行的对齐
+                    val remaining = columns - rowVideos.size
+                    if (remaining > 0) {
+                        Spacer(modifier = Modifier.weight(remaining.toFloat()))
+                    }
+                }
+            }
+        }
+
+        // 底部加载指示器
+        if (isLoadingMore) {
+            LinearProgressIndicator(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+            )
+        }
+    }
+}
+
+@Composable
+private fun PhoneModeGrid(
+    videos: List<Video>,
+    onVideoClick: (String, String) -> Unit,
+    onLoadMore: () -> Unit,
+    isLoadingMore: Boolean,
+    hasMore: Boolean,
+    columns: Int,
+    spacing: androidx.compose.ui.unit.Dp,
+    modifier: Modifier,
+    savedScrollIndex: Int,
+    savedScrollOffset: Int,
+    onScrollStateChanged: (index: Int, offset: Int) -> Unit
+) {
     val gridState = rememberLazyGridState()
     var lastTriggeredSize by remember { mutableIntStateOf(0) }
 
@@ -41,7 +201,6 @@ fun VideoGrid(
         snapshotFlow {
             gridState.firstVisibleItemIndex to gridState.firstVisibleItemScrollOffset
         }.collect { (index, offset) ->
-            android.util.Log.d("VideoGrid", "scroll: index=$index, offset=$offset, videos=${videos.size}")
             onScrollStateChanged(index, offset)
         }
     }
@@ -55,24 +214,17 @@ fun VideoGrid(
 
     // 从播放页返回后恢复滚动位置和焦点
     val shouldRestore = savedScrollIndex > 0 && videos.size > savedScrollIndex
-    android.util.Log.d("VideoGrid", "restore: shouldRestore=$shouldRestore, savedIndex=$savedScrollIndex, savedOffset=$savedScrollOffset, videos=${videos.size}")
     var restoringFocus by remember { mutableStateOf(false) }
     LaunchedEffect(shouldRestore) {
         if (shouldRestore) {
             restoringFocus = true
-            android.util.Log.d("VideoGrid", "scrollToItem: index=$savedScrollIndex, offset=$savedScrollOffset")
             delay(100)
             gridState.scrollToItem(savedScrollIndex, savedScrollOffset)
             delay(300)
-            android.util.Log.d("VideoGrid", "scrollToItem retry: index=$savedScrollIndex, offset=$savedScrollOffset")
             gridState.scrollToItem(savedScrollIndex, savedScrollOffset)
             restoringFocus = false
         }
     }
-
-    // TV 模式使用 5 列，手机端使用 3 列
-    val columns = if (isTv) 5 else 3
-    val spacing = if (isTv) 16.dp else 8.dp
 
     fun checkAndLoadMore() {
         val totalItems = gridState.layoutInfo.totalItemsCount
@@ -83,7 +235,6 @@ fun VideoGrid(
         }
     }
 
-    // Trigger load more on scroll
     LaunchedEffect(gridState, hasMore, isLoadingMore) {
         snapshotFlow {
             gridState.firstVisibleItemIndex to gridState.layoutInfo.visibleItemsInfo.size to gridState.layoutInfo.totalItemsCount
@@ -97,9 +248,8 @@ fun VideoGrid(
         }
     }
 
-    // Also check when videos list changes (after loading more data)
     LaunchedEffect(videos.size, hasMore, isLoadingMore) {
-        delay(200) // Wait for layout to settle
+        delay(200)
         checkAndLoadMore()
     }
 
@@ -114,18 +264,10 @@ fun VideoGrid(
         contentPadding = PaddingValues(spacing)
     ) {
         itemsIndexed(videos) { index, video ->
-            if (isTv) {
-                TVVideoCard(
-                    video = video,
-                    onClick = { onVideoClick(video.sourceId, video.id) },
-                    shouldAutoFocus = shouldRestore && !restoringFocus && index == savedScrollIndex
-                )
-            } else {
-                VideoCard(
-                    video = video,
-                    onClick = { onVideoClick(video.sourceId, video.id) }
-                )
-            }
+            VideoCard(
+                video = video,
+                onClick = { onVideoClick(video.sourceId, video.id) }
+            )
         }
     }
 }

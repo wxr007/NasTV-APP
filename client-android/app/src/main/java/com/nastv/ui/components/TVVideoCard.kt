@@ -57,7 +57,7 @@ fun TVVideoCard(
 
     Column(
         modifier = modifier
-            .width(180.dp)
+            .fillMaxWidth()
             .focusRequester(focusRequester)
             .focusProperties { canFocus = true }
             .onFocusChanged { focusState ->

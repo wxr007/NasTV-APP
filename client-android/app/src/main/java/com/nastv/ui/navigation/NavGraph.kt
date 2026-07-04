@@ -17,10 +17,12 @@ import com.nastv.ui.screens.cache.CacheScreen
 import com.nastv.ui.screens.favorites.FavoritesScreen
 import com.nastv.ui.screens.history.HistoryScreen
 import com.nastv.ui.screens.home.HomeScreen
+import com.nastv.ui.screens.home.TVHomeScreen
 import com.nastv.ui.screens.login.LoginScreen
 import com.nastv.ui.screens.play.PlayScreen
 import com.nastv.ui.screens.search.SearchScreen
 import com.nastv.ui.screens.settings.SettingsScreen
+import com.nastv.ui.theme.LocalIsTv
 
 @Composable
 fun NavGraph(
@@ -58,26 +60,50 @@ fun NavGraph(
             popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None }
         ) {
-            HomeScreen(
-                onNavigateToPlay = { sourceId, videoId ->
-                    navController.navigate(Screen.Play.createRoute(sourceId, videoId))
-                },
-                onNavigateToSearch = {
-                    navController.navigate(Screen.Search.route)
-                },
-                onNavigateToFavorites = {
-                    navController.navigate(Screen.Favorites.route)
-                },
-                onNavigateToHistory = {
-                    navController.navigate(Screen.History.route)
-                },
-                onNavigateToSettings = {
-                    navController.navigate(Screen.Settings.route)
-                },
-                onNavigateToCache = {
-                    navController.navigate(Screen.Cache.route)
-                }
-            )
+            val isTv = LocalIsTv.current
+            if (isTv) {
+                TVHomeScreen(
+                    onNavigateToPlay = { sourceId, videoId ->
+                        navController.navigate(Screen.Play.createRoute(sourceId, videoId))
+                    },
+                    onNavigateToSearch = {
+                        navController.navigate(Screen.Search.route)
+                    },
+                    onNavigateToFavorites = {
+                        navController.navigate(Screen.Favorites.route)
+                    },
+                    onNavigateToHistory = {
+                        navController.navigate(Screen.History.route)
+                    },
+                    onNavigateToSettings = {
+                        navController.navigate(Screen.Settings.route)
+                    },
+                    onNavigateToCache = {
+                        navController.navigate(Screen.Cache.route)
+                    }
+                )
+            } else {
+                HomeScreen(
+                    onNavigateToPlay = { sourceId, videoId ->
+                        navController.navigate(Screen.Play.createRoute(sourceId, videoId))
+                    },
+                    onNavigateToSearch = {
+                        navController.navigate(Screen.Search.route)
+                    },
+                    onNavigateToFavorites = {
+                        navController.navigate(Screen.Favorites.route)
+                    },
+                    onNavigateToHistory = {
+                        navController.navigate(Screen.History.route)
+                    },
+                    onNavigateToSettings = {
+                        navController.navigate(Screen.Settings.route)
+                    },
+                    onNavigateToCache = {
+                        navController.navigate(Screen.Cache.route)
+                    }
+                )
+            }
         }
 
         composable(
