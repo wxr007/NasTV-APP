@@ -86,8 +86,9 @@ fun CacheScreen(
                         .fillMaxSize()
                         .padding(paddingValues)
                         .padding(if (isTv) 16.dp else 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(if (isTv) 24.dp else 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(if (isTv) 24.dp else 8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(if (isTv) 16.dp else 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(if (isTv) 16.dp else 8.dp),
+                    contentPadding = if (isTv) PaddingValues(16.dp) else PaddingValues(0.dp)
                 ) {
                     items(items = episodes, key = { "${it.sourceId}:${it.videoId}:${it.episodeIndex}" }) { episode ->
                         val video = Video(
@@ -96,21 +97,16 @@ fun CacheScreen(
                             pic = episode.status?.picUrl,
                             sourceId = episode.sourceId
                         )
-                        // 给每个 item 添加足够的 padding，让缩放后的内容有空间显示
-                        Box(
-                            modifier = Modifier.padding(if (isTv) 24.dp else 0.dp)
-                        ) {
-                            if (isTv) {
-                                TVVideoCard(
-                                    video = video,
-                                    onClick = { onNavigateToPlay(episode.sourceId, episode.videoId) }
-                                )
-                            } else {
-                                VideoCard(
-                                    video = video,
-                                    onClick = { onNavigateToPlay(episode.sourceId, episode.videoId) }
-                                )
-                            }
+                        if (isTv) {
+                            TVVideoCard(
+                                video = video,
+                                onClick = { onNavigateToPlay(episode.sourceId, episode.videoId) }
+                            )
+                        } else {
+                            VideoCard(
+                                video = video,
+                                onClick = { onNavigateToPlay(episode.sourceId, episode.videoId) }
+                            )
                         }
                     }
                 }

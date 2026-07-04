@@ -44,7 +44,7 @@ class PreferencesRepository @Inject constructor(
     }
 
     val seekDurationFlow: Flow<Int> = dataStore.data.map { preferences ->
-        preferences[SEEK_DURATION_KEY] ?: 10
+        preferences[SEEK_DURATION_KEY] ?: 30
     }
 
     val forceTvModeFlow: Flow<Boolean> = dataStore.data.map { preferences ->

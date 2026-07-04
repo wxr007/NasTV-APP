@@ -1,17 +1,21 @@
 package com.nastv.ui.screens.search
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nastv.ui.components.TVVideoCard
@@ -48,13 +52,19 @@ fun SearchScreen(
                     query = it
                     viewModel.getSuggestions(it)
                 },
-                modifier = Modifier.weight(1f),
-                placeholder = { Text("Search videos...") },
+                modifier = Modifier
+                    .weight(1f)
+                    .border(2.dp, Color(0xFFFFD700), RoundedCornerShape(8.dp)),
+                placeholder = { Text("搜索视频...") },
                 singleLine = true,
                 trailingIcon = {
                     if (query.isNotBlank()) {
                         IconButton(onClick = { viewModel.search(query) }) {
-                            Text("Search", color = MaterialTheme.colorScheme.primary)
+                            Icon(
+                                Icons.Default.Search,
+                                contentDescription = "搜索",
+                                tint = Color(0xFFFFD700)
+                            )
                         }
                     }
                 }

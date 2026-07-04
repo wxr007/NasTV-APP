@@ -1,8 +1,12 @@
 package com.nastv.ui.screens.home
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Favorite
@@ -14,6 +18,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nastv.ui.components.VideoGrid
@@ -72,9 +78,14 @@ fun HomeScreen(
                     TextButton(onClick = { sourceDropdownExpanded = true }) {
                         Text(
                             text = selectedSource?.name ?: "选择源",
-                            style = MaterialTheme.typography.titleLarge
+                            style = MaterialTheme.typography.titleLarge,
+                            color = if (isTv) Color(0xFFFFD700) else Color.Unspecified
                         )
-                        Icon(Icons.Default.ArrowDropDown, contentDescription = "Select source")
+                        Icon(
+                            Icons.Default.ArrowDropDown,
+                            contentDescription = "Select source",
+                            tint = if (isTv) Color(0xFFFFD700) else Color.Unspecified
+                        )
                     }
                     DropdownMenu(
                         expanded = sourceDropdownExpanded,
@@ -84,7 +95,10 @@ fun HomeScreen(
                             DropdownMenuItem(
                                 text = { Text(source.name) },
                                 onClick = {
-                                    viewModel.selectSource(source)
+                                    // 避免重复选择同一站源导致分类消失
+                                    if (source.id != selectedSource?.id) {
+                                        viewModel.selectSource(source)
+                                    }
                                     sourceDropdownExpanded = false
                                 }
                             )
@@ -93,21 +107,36 @@ fun HomeScreen(
                 }
             },
             actions = {
-                IconButton(onClick = onNavigateToSearch) {
-                    Icon(Icons.Default.Search, contentDescription = "Search")
-                }
-                IconButton(onClick = onNavigateToFavorites) {
-                    Icon(Icons.Default.Favorite, contentDescription = "Favorites")
-                }
-                IconButton(onClick = onNavigateToHistory) {
-                    Icon(Icons.Default.History, contentDescription = "History")
-                }
-                IconButton(onClick = onNavigateToCache) {
-                    Icon(Icons.Default.Storage, contentDescription = "Cache")
-                }
-                IconButton(onClick = onNavigateToSettings) {
-                    Icon(Icons.Default.Settings, contentDescription = "Settings")
-                }
+                TvIconButton(
+                    onClick = onNavigateToSearch,
+                    isTv = isTv,
+                    icon = Icons.Default.Search,
+                    contentDescription = "Search"
+                )
+                TvIconButton(
+                    onClick = onNavigateToFavorites,
+                    isTv = isTv,
+                    icon = Icons.Default.Favorite,
+                    contentDescription = "Favorites"
+                )
+                TvIconButton(
+                    onClick = onNavigateToHistory,
+                    isTv = isTv,
+                    icon = Icons.Default.History,
+                    contentDescription = "History"
+                )
+                TvIconButton(
+                    onClick = onNavigateToCache,
+                    isTv = isTv,
+                    icon = Icons.Default.Storage,
+                    contentDescription = "Cache"
+                )
+                TvIconButton(
+                    onClick = onNavigateToSettings,
+                    isTv = isTv,
+                    icon = Icons.Default.Settings,
+                    contentDescription = "Settings"
+                )
             }
         )
 
@@ -115,21 +144,23 @@ fun HomeScreen(
         if (parentCategories.isNotEmpty()) {
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item {
-                    FilterChip(
+                    TvFilterChip(
                         selected = selectedParentCategory == null,
                         onClick = { viewModel.selectParentCategory(null) },
-                        label = { Text("全部") }
+                        label = "全部",
+                        isTv = isTv
                     )
                 }
                 items(items = parentCategories) { category ->
-                    FilterChip(
+                    TvFilterChip(
                         selected = category == selectedParentCategory,
                         onClick = { viewModel.selectParentCategory(category) },
-                        label = { Text(category.name) }
+                        label = category.name,
+                        isTv = isTv
                     )
                 }
             }
@@ -139,21 +170,23 @@ fun HomeScreen(
         if (subCategories.isNotEmpty()) {
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item {
-                    FilterChip(
+                    TvFilterChip(
                         selected = selectedSubCategory == null,
                         onClick = { viewModel.selectSubCategory(null) },
-                        label = { Text("全部") }
+                        label = "全部",
+                        isTv = isTv
                     )
                 }
                 items(items = subCategories) { category ->
-                    FilterChip(
+                    TvFilterChip(
                         selected = category == selectedSubCategory,
                         onClick = { viewModel.selectSubCategory(category) },
-                        label = { Text(category.name) }
+                        label = category.name,
+                        isTv = isTv
                     )
                 }
             }
@@ -189,9 +222,86 @@ fun HomeScreen(
                     isLoadingMore = isLoadingMore,
                     hasMore = hasMore,
                     isTv = isTv,
-                    modifier = Modifier.fillMaxSize()
+                    modifier = Modifier.fillMaxSize(),
+                    savedScrollIndex = viewModel.savedScrollIndex,
+                    savedScrollOffset = viewModel.savedScrollOffset,
+                    onScrollStateChanged = { index, offset ->
+                        viewModel.saveScrollState(index, offset)
+                    }
                 )
             }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TvFilterChip(
+    selected: Boolean,
+    onClick: () -> Unit,
+    label: String,
+    isTv: Boolean
+) {
+    var isFocused by remember { mutableStateOf(false) }
+    val borderColor = if (isFocused) Color(0xFFFFD700) else if (selected) Color(0xFFFF5722) else Color(0xFF666666)
+
+    if (isTv) {
+        // TV 模式：使用简单的 Box 作为按钮，避免 FilterChip 的双层边框
+        Box(
+            modifier = Modifier
+                .onFocusChanged { isFocused = it.isFocused }
+                .clickable(onClick = onClick)
+                .background(
+                    color = if (selected) Color(0xFFFF5722).copy(alpha = 0.2f) else Color.Transparent,
+                    shape = RoundedCornerShape(8.dp)
+                )
+                .border(2.dp, borderColor, RoundedCornerShape(8.dp))
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            Text(
+                text = label,
+                color = Color.White
+            )
+        }
+    } else {
+        FilterChip(
+            selected = selected,
+            onClick = onClick,
+            label = { Text(label) }
+        )
+    }
+}
+
+@Composable
+private fun TvIconButton(
+    onClick: () -> Unit,
+    isTv: Boolean,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String
+) {
+    var isFocused by remember { mutableStateOf(false) }
+    val backgroundColor = if (isFocused) Color(0xFFFFD700) else Color.Transparent
+
+    if (isTv) {
+        Box(
+            modifier = Modifier
+                .onFocusChanged { isFocused = it.isFocused }
+                .clickable(onClick = onClick)
+                .background(
+                    color = backgroundColor,
+                    shape = RoundedCornerShape(8.dp)
+                )
+                .padding(8.dp)
+        ) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = if (isFocused) Color.Black else Color.White
+            )
+        }
+    } else {
+        IconButton(onClick = onClick) {
+            Icon(imageVector = icon, contentDescription = contentDescription)
         }
     }
 }

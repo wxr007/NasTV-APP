@@ -7,22 +7,28 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -34,15 +40,25 @@ import com.nastv.utils.ImageUrlHelper
 fun TVVideoCard(
     video: Video,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    shouldAutoFocus: Boolean = false
 ) {
     var isFocused by remember { mutableStateOf(false) }
+    val focusRequester = remember { FocusRequester() }
 
     val borderColor = if (isFocused) Color(0xFFFFD700) else Color(0xFF666666)
+
+    // 自动获取焦点（从播放页返回时聚焦到原来的海报）
+    LaunchedEffect(shouldAutoFocus) {
+        if (shouldAutoFocus) {
+            focusRequester.requestFocus()
+        }
+    }
 
     Column(
         modifier = modifier
             .width(180.dp)
+            .focusRequester(focusRequester)
             .focusProperties { canFocus = true }
             .onFocusChanged { focusState ->
                 isFocused = focusState.isFocused
@@ -67,7 +83,8 @@ fun TVVideoCard(
                 contentDescription = video.name,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(2f / 3f),
+                    .aspectRatio(2f / 3f)
+                    .clip(RoundedCornerShape(topStart = 6.dp, topEnd = 6.dp)),
                 contentScale = ContentScale.Crop
             )
 
@@ -98,12 +115,14 @@ fun TVVideoCard(
             text = video.name,
             modifier = Modifier
                 .fillMaxWidth()
+                .height(48.dp)
                 .background(MaterialTheme.colorScheme.surface)
                 .padding(8.dp),
             style = MaterialTheme.typography.labelLarge,
             fontSize = 16.sp,
             maxLines = 2,
-            overflow = TextOverflow.Ellipsis
+            overflow = TextOverflow.Ellipsis,
+            textAlign = TextAlign.Center
         )
     }
 }

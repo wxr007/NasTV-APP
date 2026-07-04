@@ -54,7 +54,24 @@ class HomeViewModel @Inject constructor(
 
     private var currentPage = 1
 
+    // 滚动位置保存（导航到播放页后恢复）
+    var savedScrollIndex: Int = 0
+        private set
+    var savedScrollOffset: Int = 0
+        private set
+
+    fun saveScrollState(index: Int, offset: Int) {
+        android.util.Log.d("HomeViewModel", "saveScrollState: index=$index, offset=$offset, videos=${_videos.value.size}")
+        savedScrollIndex = index
+        savedScrollOffset = offset
+    }
+
+    // 记录最后一次加载的源和分类，避免导航回来时重复加载
+    private var lastLoadedSource: String? = null
+    private var lastLoadedCategory: String? = null
+
     fun loadSources() {
+        if (_sources.value.isNotEmpty()) return // 已加载则跳过
         viewModelScope.launch {
             when (val result = sourceRepository.getSources()) {
                 is Result.Success -> {
@@ -97,6 +114,14 @@ class HomeViewModel @Inject constructor(
     }
 
     fun loadVideos(sourceId: String, categoryId: String? = null) {
+        // 导航回来时，相同参数不再重复加载（保持加载更多后的完整列表）
+        if (_videos.value.isNotEmpty() && lastLoadedSource == sourceId && lastLoadedCategory == categoryId) {
+            android.util.Log.d("HomeViewModel", "loadVideos skipped: same params, videos=${_videos.value.size}")
+            return
+        }
+        lastLoadedSource = sourceId
+        lastLoadedCategory = categoryId
+        android.util.Log.d("HomeViewModel", "loadVideos called: source=$sourceId, category=$categoryId, currentVideos=${_videos.value.size}")
         viewModelScope.launch {
             currentPage = 1
             _hasMore.value = true
@@ -104,6 +129,7 @@ class HomeViewModel @Inject constructor(
             _errorMessage.value = null
             when (val result = sourceRepository.getVideos(sourceId, page = currentPage, category = categoryId)) {
                 is Result.Success -> {
+                    android.util.Log.d("HomeViewModel", "loadVideos success: count=${result.data.size}")
                     _videos.value = result.data
                     _isLoading.value = false
                 }
@@ -121,6 +147,7 @@ class HomeViewModel @Inject constructor(
         val sourceId = _selectedSource.value?.id ?: return
         val categoryId = _selectedSubCategory.value?.id ?: _selectedParentCategory.value?.id
 
+        android.util.Log.d("HomeViewModel", "loadMoreVideos: page=${currentPage + 1}, videos=${_videos.value.size}")
         viewModelScope.launch {
             _isLoadingMore.value = true
             val nextPage = currentPage + 1

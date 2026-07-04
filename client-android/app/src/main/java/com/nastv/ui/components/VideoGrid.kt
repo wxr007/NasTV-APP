@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -27,10 +28,47 @@ fun VideoGrid(
     isLoadingMore: Boolean = false,
     hasMore: Boolean = true,
     isTv: Boolean = false,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    savedScrollIndex: Int = 0,
+    savedScrollOffset: Int = 0,
+    onScrollStateChanged: (index: Int, offset: Int) -> Unit = { _, _ -> }
 ) {
     val gridState = rememberLazyGridState()
     var lastTriggeredSize by remember { mutableIntStateOf(0) }
+
+    // 保存滚动位置
+    LaunchedEffect(gridState) {
+        snapshotFlow {
+            gridState.firstVisibleItemIndex to gridState.firstVisibleItemScrollOffset
+        }.collect { (index, offset) ->
+            android.util.Log.d("VideoGrid", "scroll: index=$index, offset=$offset, videos=${videos.size}")
+            onScrollStateChanged(index, offset)
+        }
+    }
+
+    // 在 composable 销毁时也保存一次位置（导航离开时）
+    DisposableEffect(gridState) {
+        onDispose {
+            onScrollStateChanged(gridState.firstVisibleItemIndex, gridState.firstVisibleItemScrollOffset)
+        }
+    }
+
+    // 从播放页返回后恢复滚动位置和焦点
+    val shouldRestore = savedScrollIndex > 0 && videos.size > savedScrollIndex
+    android.util.Log.d("VideoGrid", "restore: shouldRestore=$shouldRestore, savedIndex=$savedScrollIndex, savedOffset=$savedScrollOffset, videos=${videos.size}")
+    var restoringFocus by remember { mutableStateOf(false) }
+    LaunchedEffect(shouldRestore) {
+        if (shouldRestore) {
+            restoringFocus = true
+            android.util.Log.d("VideoGrid", "scrollToItem: index=$savedScrollIndex, offset=$savedScrollOffset")
+            delay(100)
+            gridState.scrollToItem(savedScrollIndex, savedScrollOffset)
+            delay(300)
+            android.util.Log.d("VideoGrid", "scrollToItem retry: index=$savedScrollIndex, offset=$savedScrollOffset")
+            gridState.scrollToItem(savedScrollIndex, savedScrollOffset)
+            restoringFocus = false
+        }
+    }
 
     // TV 模式使用 5 列，手机端使用 3 列
     val columns = if (isTv) 5 else 3
@@ -75,11 +113,12 @@ fun VideoGrid(
         verticalArrangement = Arrangement.spacedBy(spacing),
         contentPadding = PaddingValues(spacing)
     ) {
-        items(videos) { video ->
+        itemsIndexed(videos) { index, video ->
             if (isTv) {
                 TVVideoCard(
                     video = video,
-                    onClick = { onVideoClick(video.sourceId, video.id) }
+                    onClick = { onVideoClick(video.sourceId, video.id) },
+                    shouldAutoFocus = shouldRestore && !restoringFocus && index == savedScrollIndex
                 )
             } else {
                 VideoCard(
