@@ -5,6 +5,7 @@ import com.nastv.data.api.PlayProgress
 import com.nastv.data.api.UpdatePlayProgressRequest
 import com.nastv.data.api.UserDataApi
 import com.nastv.data.model.CachedEpisode
+import com.nastv.data.model.CachedVideo
 import com.nastv.data.model.FavoriteItem
 import com.nastv.data.model.PlayHistory
 import javax.inject.Inject
@@ -106,6 +107,17 @@ class UserDataRepository @Inject constructor(
                 response.data
             } else {
                 throw ApiException(response.message ?: "Failed to get cached episodes")
+            }
+        }
+    }
+
+    suspend fun getCachedVideos(): Result<List<CachedVideo>> {
+        return safeApiCall {
+            val response = userDataApi.getCachedVideos()
+            if (response.isSuccess && response.data != null) {
+                response.data
+            } else {
+                throw ApiException(response.message ?: "Failed to get cached videos")
             }
         }
     }

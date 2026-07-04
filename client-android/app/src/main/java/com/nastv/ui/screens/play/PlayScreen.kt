@@ -83,19 +83,24 @@ fun PlayScreen(
                 val controller = WindowInsetsControllerCompat(act.window, act.window.decorView)
                 controller.hide(WindowInsetsCompat.Type.systemBars())
                 controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                act.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             } else if (isTv) {
                 act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
                 val controller = WindowInsetsControllerCompat(act.window, act.window.decorView)
                 controller.hide(WindowInsetsCompat.Type.systemBars())
                 controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-                act.window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             } else {
                 act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
                 val controller = WindowInsetsControllerCompat(act.window, act.window.decorView)
                 controller.show(WindowInsetsCompat.Type.systemBars())
-                act.window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             }
+        }
+    }
+
+    // Keep screen on during video playback
+    DisposableEffect(Unit) {
+        activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        onDispose {
+            activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
     }
 

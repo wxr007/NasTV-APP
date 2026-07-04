@@ -2,6 +2,7 @@ package com.nastv.data.api
 
 import com.nastv.data.model.ApiResponse
 import com.nastv.data.model.CachedEpisode
+import com.nastv.data.model.CachedVideo
 import com.nastv.data.model.FavoriteItem
 import com.nastv.data.model.PlayHistory
 import com.squareup.moshi.Json
@@ -71,6 +72,13 @@ interface UserDataApi {
      */
     @GET("api/cache/episodes")
     suspend fun getCachedEpisodes(): ApiResponse<List<CachedEpisode>>
+
+    /**
+     * GET /api/cache/videos
+     * Get all cached video series grouped by sourceId+videoId (auth required).
+     */
+    @GET("api/cache/videos")
+    suspend fun getCachedVideos(): ApiResponse<List<CachedVideo>>
 }
 
 @JsonClass(generateAdapter = true)

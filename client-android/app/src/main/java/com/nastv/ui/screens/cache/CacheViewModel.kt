@@ -2,7 +2,7 @@ package com.nastv.ui.screens.cache
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.nastv.data.model.CachedEpisode
+import com.nastv.data.model.CachedVideo
 import com.nastv.data.repository.Result
 import com.nastv.data.repository.UserDataRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -17,8 +17,8 @@ class CacheViewModel @Inject constructor(
     private val userDataRepository: UserDataRepository
 ) : ViewModel() {
 
-    private val _episodes = MutableStateFlow<List<CachedEpisode>>(emptyList())
-    val episodes: StateFlow<List<CachedEpisode>> = _episodes.asStateFlow()
+    private val _videos = MutableStateFlow<List<CachedVideo>>(emptyList())
+    val videos: StateFlow<List<CachedVideo>> = _videos.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -26,13 +26,13 @@ class CacheViewModel @Inject constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
-    fun loadCachedEpisodes() {
+    fun loadCachedVideos() {
         viewModelScope.launch {
             _isLoading.value = true
             _errorMessage.value = null
-            when (val result = userDataRepository.getCachedEpisodes()) {
+            when (val result = userDataRepository.getCachedVideos()) {
                 is Result.Success -> {
-                    _episodes.value = result.data
+                    _videos.value = result.data.sortedByDescending { it.updatedAt ?: "" }
                     _isLoading.value = false
                 }
                 is Result.Error -> {

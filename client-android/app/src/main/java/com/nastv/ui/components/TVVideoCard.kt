@@ -14,12 +14,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -49,6 +52,13 @@ fun TVVideoCard(
 
     val borderColor = if (isFocused) Color(0xFFFFD700) else Color(0xFF666666)
 
+    // 聚焦放大动画
+    val scale by animateFloatAsState(
+        targetValue = if (isFocused) 1.08f else 1f,
+        animationSpec = tween(durationMillis = 200),
+        label = "focusScale"
+    )
+
     // 自动获取焦点（从播放页返回时聚焦到原来的海报）
     LaunchedEffect(shouldAutoFocus) {
         if (shouldAutoFocus) {
@@ -69,6 +79,11 @@ fun TVVideoCard(
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
             )
+            .graphicsLayer {
+                scaleX = scale
+                scaleY = scale
+                shadowElevation = if (isFocused) 8.dp.toPx() else 0f
+            }
             .clip(RoundedCornerShape(8.dp))
             .background(Color.Transparent, RoundedCornerShape(8.dp))
             .border(2.dp, borderColor, RoundedCornerShape(8.dp))

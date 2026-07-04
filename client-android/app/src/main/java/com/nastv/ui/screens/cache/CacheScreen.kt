@@ -1,16 +1,22 @@
 package com.nastv.ui.screens.cache
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nastv.data.model.Video
 import com.nastv.ui.components.TVVideoCard
@@ -25,12 +31,12 @@ fun CacheScreen(
     viewModel: CacheViewModel = hiltViewModel()
 ) {
     val isTv = LocalIsTv.current
-    val episodes by viewModel.episodes.collectAsState()
+    val videos by viewModel.videos.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
     LaunchedEffect(Unit) {
-        viewModel.loadCachedEpisodes()
+        viewModel.loadCachedVideos()
     }
 
     Scaffold(
@@ -69,7 +75,7 @@ fun CacheScreen(
                     )
                 }
             }
-            episodes.isEmpty() -> {
+            videos.isEmpty() -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -90,23 +96,44 @@ fun CacheScreen(
                     verticalArrangement = Arrangement.spacedBy(if (isTv) 16.dp else 8.dp),
                     contentPadding = if (isTv) PaddingValues(16.dp) else PaddingValues(0.dp)
                 ) {
-                    items(items = episodes, key = { "${it.sourceId}:${it.videoId}:${it.episodeIndex}" }) { episode ->
+                    items(items = videos, key = { "${it.sourceId}:${it.videoId}" }) { cachedVideo ->
                         val video = Video(
-                            id = episode.videoId,
-                            name = episode.status?.title ?: "未命名",
-                            pic = episode.status?.picUrl,
-                            sourceId = episode.sourceId
+                            id = cachedVideo.videoId,
+                            name = cachedVideo.title,
+                            pic = cachedVideo.picUrl,
+                            sourceId = cachedVideo.sourceId
                         )
-                        if (isTv) {
-                            TVVideoCard(
-                                video = video,
-                                onClick = { onNavigateToPlay(episode.sourceId, episode.videoId) }
-                            )
-                        } else {
-                            VideoCard(
-                                video = video,
-                                onClick = { onNavigateToPlay(episode.sourceId, episode.videoId) }
-                            )
+                        Box {
+                            if (isTv) {
+                                TVVideoCard(
+                                    video = video,
+                                    onClick = { onNavigateToPlay(cachedVideo.sourceId, cachedVideo.videoId) }
+                                )
+                            } else {
+                                VideoCard(
+                                    video = video,
+                                    onClick = { onNavigateToPlay(cachedVideo.sourceId, cachedVideo.videoId) }
+                                )
+                            }
+                            // 左上角缓存集数角标
+                            if (cachedVideo.cachedCount > 0) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopStart)
+                                        .padding(4.dp)
+                                        .clip(RoundedCornerShape(4.dp))
+                                        .background(Color(0xCCFF0000))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "${cachedVideo.cachedCount}集",
+                                        color = Color.White,
+                                        fontSize = if (isTv) 14.sp else 12.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
                         }
                     }
                 }
