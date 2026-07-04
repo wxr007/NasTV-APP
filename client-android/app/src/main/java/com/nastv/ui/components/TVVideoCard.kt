@@ -3,6 +3,7 @@ package com.nastv.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
@@ -63,7 +64,12 @@ fun TVVideoCard(
             .onFocusChanged { focusState ->
                 isFocused = focusState.isFocused
             }
-            .clickable(onClick = onClick)
+            .clickable(
+                onClick = onClick,
+                indication = null,
+                interactionSource = remember { MutableInteractionSource() }
+            )
+            .clip(RoundedCornerShape(8.dp))
             .background(Color.Transparent, RoundedCornerShape(8.dp))
             .border(2.dp, borderColor, RoundedCornerShape(8.dp))
     ) {

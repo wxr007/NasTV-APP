@@ -1,13 +1,11 @@
 package com.nastv.ui.screens.search
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
@@ -52,11 +50,14 @@ fun SearchScreen(
                     query = it
                     viewModel.getSuggestions(it)
                 },
-                modifier = Modifier
-                    .weight(1f)
-                    .border(2.dp, Color(0xFFFFD700), RoundedCornerShape(8.dp)),
+                modifier = Modifier.weight(1f),
                 placeholder = { Text("搜索视频...") },
                 singleLine = true,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = Color(0xFFFFD700),
+                    unfocusedBorderColor = Color(0xFFFFD700),
+                    cursorColor = Color(0xFFFFD700)
+                ),
                 trailingIcon = {
                     if (query.isNotBlank()) {
                         IconButton(onClick = { viewModel.search(query) }) {
@@ -131,10 +132,12 @@ fun SearchScreen(
                         }
                     }
                 } else {
-                    // 手机模式：使用列表布局
-                    LazyColumn(
+                    // 手机模式：使用三列网格
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
+                        contentPadding = PaddingValues(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(items = searchResults) { video ->
