@@ -64,6 +64,7 @@ fun PhonePlayContent(
 ) {
     var episodesExpanded by remember { mutableStateOf(false) }
     var sortAscending by remember { mutableStateOf(true) }
+    var detailExpanded by remember { mutableStateOf(false) }
 
     LazyColumn(
         modifier = Modifier
@@ -210,9 +211,10 @@ fun PhonePlayContent(
                         }
                     }
                     Text(
-                        text = "详情 >",
+                        text = if (detailExpanded) "收起详情" else "展开详情",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.clickable { detailExpanded = !detailExpanded }
                     )
                 }
 
@@ -222,7 +224,7 @@ fun PhonePlayContent(
                         text = desc,
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
+                        maxLines = if (detailExpanded) Int.MAX_VALUE else 2,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(bottom = 16.dp)
                     )
