@@ -651,6 +651,9 @@ fun TvPlayContent(
 
         // 简介弹窗 - 直接布局内渲染，避免遮罩变暗
         if (showDescriptionDialog) {
+            val descCloseFocusRequester = remember { FocusRequester() }
+            LaunchedEffect(Unit) { descCloseFocusRequester.requestFocus() }
+
             // 拦截返回键，不要退出整个页面
             androidx.activity.compose.BackHandler(enabled = showDescriptionDialog) {
                 showDescriptionDialog = false
@@ -660,8 +663,7 @@ fun TvPlayContent(
                 modifier = Modifier
                     .fillMaxSize()
                     .onPreviewKeyEvent { event ->
-                        if (event.type == KeyEventType.KeyDown && 
-                            (event.key == Key.Enter || event.key == Key.NumPadEnter || event.key == Key.Back)) {
+                        if (event.type == KeyEventType.KeyDown && event.key == Key.Back) {
                             showDescriptionDialog = false
                             true
                         } else false
@@ -702,7 +704,19 @@ fun TvPlayContent(
                         Spacer(modifier = Modifier.height(12.dp))
                         // 关闭按钮
                         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-                            TextButton(onClick = { showDescriptionDialog = false }) {
+                            TextButton(
+                                onClick = { showDescriptionDialog = false },
+                                modifier = Modifier
+                                    .focusRequester(descCloseFocusRequester)
+                                    .tvFocusable()
+                                    .onPreviewKeyEvent { event ->
+                                        if (event.type == KeyEventType.KeyDown &&
+                                            (event.key == Key.Enter || event.key == Key.NumPadEnter)) {
+                                            showDescriptionDialog = false
+                                            true
+                                        } else false
+                                    }
+                            ) {
                                 Text("关闭")
                             }
                         }
