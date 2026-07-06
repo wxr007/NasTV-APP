@@ -73,29 +73,30 @@ fun TVHomeScreen(
 
     val listState = rememberLazyListState()
 
-    // 标记是否已经完成首次恢复（从播放页返回后）。之后正常滚动不再干扰焦点。
-    var restoredOnce by remember { mutableStateOf(false) }
+    // 焦点恢复目标索引（-1 表示不需要恢复）。滚动完成后才设置，确保卡片已渲染
+    var focusTargetIndex by remember { mutableStateOf(-1) }
+    // 恢复滚动时禁止更新 savedScrollIndex
+    var isRestoringScroll by remember { mutableStateOf(false) }
 
-    // 保存滚动位置
+    // 保存滚动位置（恢复期间跳过）
     LaunchedEffect(listState) {
         snapshotFlow { listState.firstVisibleItemIndex }.collect { rowIndex ->
-            viewModel.saveScrollState(rowIndex * columns, 0)
+            if (!isRestoringScroll) {
+                viewModel.saveScrollState(rowIndex * columns, 0)
+            }
         }
     }
 
-    // 从播放页返回后恢复滚动位置（仅执行一次）
+    // 从播放页返回后：先滚动到目标行，再触发焦点恢复
     val savedRowIndex = viewModel.savedScrollIndex / columns
+    val savedIndex = viewModel.savedScrollIndex
     LaunchedEffect(Unit) {
         if (savedRowIndex > 0 && rows.size > savedRowIndex) {
-            delay(100)
+            isRestoringScroll = true
             listState.scrollToItem(savedRowIndex)
-            delay(300)
-            listState.scrollToItem(savedRowIndex)
-            delay(500)
-            restoredOnce = true
-        } else {
-            // 没有需要恢复的滚动位置，标记已完成
-            restoredOnce = true
+            isRestoringScroll = false
+            // 使用保存的原始索引，而不是被 snapshotFlow 覆盖的值
+            focusTargetIndex = savedIndex
         }
     }
 
@@ -190,12 +191,15 @@ fun TVHomeScreen(
                         ) {
                             rowVideos.forEachIndexed { colIndex, video ->
                                 val videoIndex = rowIndex * columns + colIndex
-                                // restoredOnce 确保只在首次恢复时自动聚焦，正常滚动不干扰焦点
                                 TVVideoCard(
                                     video = video,
-                                    onClick = { onNavigateToPlay(video.sourceId, video.id) },
+                                    onClick = {
+                                        // 点击时立即保存准确的焦点索引
+                                        viewModel.saveScrollState(videoIndex, 0)
+                                        onNavigateToPlay(video.sourceId, video.id)
+                                    },
                                     modifier = Modifier.weight(1f),
-                                    shouldAutoFocus = !restoredOnce && viewModel.savedScrollIndex > 0 && videoIndex == viewModel.savedScrollIndex
+                                    shouldAutoFocus = videoIndex == focusTargetIndex
                                 )
                             }
                             val remaining = columns - rowVideos.size
