@@ -21,6 +21,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.activity.compose.BackHandler
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -52,6 +55,14 @@ fun TVHomeScreen(
     val errorMessage by viewModel.errorMessage.collectAsState()
 
     var sourceDropdownExpanded by remember { mutableStateOf(false) }
+    val categoryFocusRequester = remember { FocusRequester() }
+    var isGridFocused by remember { mutableStateOf(false) }
+
+    // 当焦点在海报墙上时，按返回键先移动焦点到类型选择区域
+    BackHandler(enabled = isGridFocused) {
+        isGridFocused = false
+        categoryFocusRequester.requestFocus()
+    }
 
     LaunchedEffect(Unit) { viewModel.loadSources() }
     LaunchedEffect(selectedSource) {
@@ -151,7 +162,14 @@ fun TVHomeScreen(
         )
 
         if (parentCategories.isNotEmpty()) {
-            LazyRow(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyRow(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(categoryFocusRequester)
+                    .onFocusChanged { isGridFocused = false },
+                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 item { TvFilterChip(selected = selectedParentCategory == null, onClick = { viewModel.selectParentCategory(null) }, label = "全部") }
                 items(items = parentCategories) { category ->
                     TvFilterChip(selected = category == selectedParentCategory, onClick = { viewModel.selectParentCategory(category) }, label = category.name)
@@ -181,7 +199,8 @@ fun TVHomeScreen(
                     state = listState,
                     modifier = Modifier
                         .weight(1f)
-                        .fillMaxWidth(),
+                        .fillMaxWidth()
+                        .onFocusChanged { isGridFocused = it.isFocused || it.hasFocus },
                     contentPadding = PaddingValues(horizontal = spacing, vertical = spacing),
                     verticalArrangement = Arrangement.spacedBy(spacing)
                 ) {
