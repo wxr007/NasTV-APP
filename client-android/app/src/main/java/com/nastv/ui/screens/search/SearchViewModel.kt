@@ -33,6 +33,14 @@ class SearchViewModel @Inject constructor(
 
     private var suggestionJob: Job? = null
 
+    // 滚动位置保存（导航到播放页后恢复）
+    var savedScrollIndex: Int = 0
+        private set
+
+    fun saveScrollState(index: Int) {
+        savedScrollIndex = index
+    }
+
     fun search(keyword: String) {
         if (keyword.isBlank()) return
         viewModelScope.launch {

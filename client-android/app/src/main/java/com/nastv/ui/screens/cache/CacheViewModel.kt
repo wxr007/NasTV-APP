@@ -26,6 +26,14 @@ class CacheViewModel @Inject constructor(
     private val _errorMessage = MutableStateFlow<String?>(null)
     val errorMessage: StateFlow<String?> = _errorMessage.asStateFlow()
 
+    // 滚动位置保存（导航到播放页后恢复）
+    var savedScrollIndex: Int = 0
+        private set
+
+    fun saveScrollState(index: Int) {
+        savedScrollIndex = index
+    }
+
     fun loadCachedVideos() {
         viewModelScope.launch {
             _isLoading.value = true
