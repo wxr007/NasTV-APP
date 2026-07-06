@@ -676,7 +676,8 @@ fun TvPlayContent(
                         .fillMaxWidth(0.7f)
                         .fillMaxHeight(0.45f)
                         .align(Alignment.BottomCenter)
-                        .padding(bottom = 24.dp),
+                        .padding(bottom = 24.dp)
+                        .border(2.dp, Color(0xFFFFD700), RoundedCornerShape(12.dp)),
                     shape = RoundedCornerShape(12.dp),
                     color = MaterialTheme.colorScheme.surface,
                     tonalElevation = 8.dp
