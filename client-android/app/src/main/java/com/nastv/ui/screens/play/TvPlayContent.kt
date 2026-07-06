@@ -683,6 +683,7 @@ fun TvPlayContent(
                                     descScrollDelta = 120
                                     true
                                 }
+                                Key.DirectionLeft, Key.DirectionRight -> true
                                 else -> false
                             }
                         } else false
