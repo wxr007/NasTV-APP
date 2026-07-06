@@ -55,13 +55,24 @@ fun TVHomeScreen(
     val errorMessage by viewModel.errorMessage.collectAsState()
 
     var sourceDropdownExpanded by remember { mutableStateOf(false) }
-    val categoryFocusRequester = remember { FocusRequester() }
+    // 为每个分类项创建 FocusRequester，用于返回时聚焦到当前选中的分类
+    val categoryFocusRequesters = remember(parentCategories.size) {
+        List(parentCategories.size + 1) { FocusRequester() } // +1 for "全部"
+    }
     var isGridFocused by remember { mutableStateOf(false) }
 
-    // 当焦点在海报墙上时，按返回键先移动焦点到类型选择区域
+    // 当焦点在海报墙上时，按返回键先移动焦点到当前选中的类型
     BackHandler(enabled = isGridFocused) {
         isGridFocused = false
-        categoryFocusRequester.requestFocus()
+        // 找到当前选中的分类索引
+        val selectedIndex = if (selectedParentCategory == null) {
+            0 // "全部"
+        } else {
+            parentCategories.indexOf(selectedParentCategory) + 1 // +1 因为"全部"在索引0
+        }
+        if (selectedIndex in categoryFocusRequesters.indices) {
+            categoryFocusRequesters[selectedIndex].requestFocus()
+        }
     }
 
     LaunchedEffect(Unit) { viewModel.loadSources() }
@@ -163,16 +174,25 @@ fun TVHomeScreen(
 
         if (parentCategories.isNotEmpty()) {
             LazyRow(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .focusRequester(categoryFocusRequester)
-                    .onFocusChanged { isGridFocused = false },
+                modifier = Modifier.fillMaxWidth(),
                 contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                item { TvFilterChip(selected = selectedParentCategory == null, onClick = { viewModel.selectParentCategory(null) }, label = "全部") }
-                items(items = parentCategories) { category ->
-                    TvFilterChip(selected = category == selectedParentCategory, onClick = { viewModel.selectParentCategory(category) }, label = category.name)
+                item {
+                    TvFilterChip(
+                        selected = selectedParentCategory == null,
+                        onClick = { viewModel.selectParentCategory(null) },
+                        label = "全部",
+                        modifier = Modifier.focusRequester(categoryFocusRequesters[0])
+                    )
+                }
+                itemsIndexed(items = parentCategories) { index, category ->
+                    TvFilterChip(
+                        selected = category == selectedParentCategory,
+                        onClick = { viewModel.selectParentCategory(category) },
+                        label = category.name,
+                        modifier = Modifier.focusRequester(categoryFocusRequesters[index + 1])
+                    )
                 }
             }
         }
@@ -238,11 +258,11 @@ fun TVHomeScreen(
 }
 
 @Composable
-private fun TvFilterChip(selected: Boolean, onClick: () -> Unit, label: String) {
+private fun TvFilterChip(selected: Boolean, onClick: () -> Unit, label: String, modifier: Modifier = Modifier) {
     var isFocused by remember { mutableStateOf(false) }
     val borderColor = if (isFocused) Color(0xFFFFD700) else if (selected) Color(0xFFFF5722) else Color(0xFF666666)
     Box(
-        modifier = Modifier
+        modifier = modifier
             .onFocusChanged { isFocused = it.isFocused }
             .clickable(onClick = onClick)
             .background(color = if (selected) Color(0xFFFF5722).copy(alpha = 0.2f) else Color.Transparent, shape = RoundedCornerShape(8.dp))
