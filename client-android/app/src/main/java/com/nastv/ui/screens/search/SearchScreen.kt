@@ -116,19 +116,36 @@ fun SearchScreen(
             }
             searchResults.isNotEmpty() -> {
                 if (isTv) {
-                    // TV 模式：使用网格布局
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(5),
+                    // TV 模式：使用 LazyColumn + Row 手动网格（解决焦点导航问题）
+                    val columns = 5
+                    val spacing = 16.dp
+                    val rows = searchResults.chunked(columns)
+                    
+                    LazyColumn(
                         modifier = Modifier.fillMaxSize(),
                         contentPadding = PaddingValues(16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                        verticalArrangement = Arrangement.spacedBy(spacing)
                     ) {
-                        items(items = searchResults) { video ->
-                            TVVideoCard(
-                                video = video,
-                                onClick = { onNavigateToPlay(video.sourceId, video.id) }
-                            )
+                        items(rows) { rowVideos ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(spacing)
+                            ) {
+                                rowVideos.forEach { video ->
+                                    TVVideoCard(
+                                        video = video,
+                                        onClick = { onNavigateToPlay(video.sourceId, video.id) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                                // 填充剩余空间
+                                val remaining = columns - rowVideos.size
+                                if (remaining > 0) {
+                                    repeat(remaining) {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
                         }
                     }
                 } else {

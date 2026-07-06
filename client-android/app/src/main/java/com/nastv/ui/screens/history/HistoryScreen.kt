@@ -1,6 +1,8 @@
 package com.nastv.ui.screens.history
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
@@ -79,29 +81,67 @@ fun HistoryScreen(
                 }
             }
             else -> {
-                LazyVerticalGrid(
-                    columns = GridCells.Fixed(if (isTv) 5 else 3),
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(if (isTv) 16.dp else 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(if (isTv) 16.dp else 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(if (isTv) 16.dp else 8.dp)
-                ) {
-                    items(items = history) { item ->
-                        val video = com.nastv.data.model.Video(
-                            id = item.videoId,
-                            name = item.name,
-                            pic = item.pic,
-                            remark = item.episode,
-                            sourceId = item.sourceId
-                        )
-                        if (isTv) {
-                            TVVideoCard(
-                                video = video,
-                                onClick = { onNavigateToPlay(item.sourceId, item.videoId) }
+                if (isTv) {
+                    // TV 模式：使用 LazyColumn + Row 手动网格（解决焦点导航问题）
+                    val columns = 5
+                    val spacing = 16.dp
+                    val rows = history.chunked(columns)
+                    
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(spacing)
+                    ) {
+                        items(rows) { rowItems ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(spacing)
+                            ) {
+                                rowItems.forEach { item ->
+                                    val video = com.nastv.data.model.Video(
+                                        id = item.videoId,
+                                        name = item.name,
+                                        pic = item.pic,
+                                        remark = item.episode,
+                                        sourceId = item.sourceId
+                                    )
+                                    TVVideoCard(
+                                        video = video,
+                                        onClick = { onNavigateToPlay(item.sourceId, item.videoId) },
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                }
+                                // 填充剩余空间
+                                val remaining = columns - rowItems.size
+                                if (remaining > 0) {
+                                    repeat(remaining) {
+                                        Spacer(modifier = Modifier.weight(1f))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // 手机模式：使用三列网格
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(3),
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .padding(8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(items = history) { item ->
+                            val video = com.nastv.data.model.Video(
+                                id = item.videoId,
+                                name = item.name,
+                                pic = item.pic,
+                                remark = item.episode,
+                                sourceId = item.sourceId
                             )
-                        } else {
                             VideoCard(
                                 video = video,
                                 onClick = { onNavigateToPlay(item.sourceId, item.videoId) }
