@@ -649,70 +649,61 @@ fun TvPlayContent(
             }
         }
 
-        // 简介弹窗 - 显示在下半部分
+        // 简介弹窗 - 直接布局内渲染，避免遮罩变暗
         if (showDescriptionDialog) {
             // 拦截返回键，不要退出整个页面
             androidx.activity.compose.BackHandler(enabled = showDescriptionDialog) {
                 showDescriptionDialog = false
             }
             
-            // 使用 Dialog 实现自定义位置
-            androidx.compose.ui.window.Dialog(
-                onDismissRequest = { showDescriptionDialog = false },
-                properties = androidx.compose.ui.window.DialogProperties(
-                    usePlatformDefaultWidth = false
-                )
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onPreviewKeyEvent { event ->
+                        if (event.type == KeyEventType.KeyDown && 
+                            (event.key == Key.Enter || event.key == Key.NumPadEnter || event.key == Key.Back)) {
+                            showDescriptionDialog = false
+                            true
+                        } else false
+                    },
+                contentAlignment = Alignment.BottomCenter
             ) {
-                Box(
+                // 弹窗内容定位到下半部分
+                Surface(
                     modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp)
-                        .onPreviewKeyEvent { event ->
-                            if (event.type == KeyEventType.KeyDown && 
-                                (event.key == Key.Enter || event.key == Key.NumPadEnter || event.key == Key.Back)) {
-                                showDescriptionDialog = false
-                                true
-                            } else false
-                        },
-                    contentAlignment = Alignment.BottomCenter
+                        .fillMaxWidth(0.7f)
+                        .fillMaxHeight(0.45f)
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 24.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 8.dp
                 ) {
-                    // 弹窗内容定位到下半部分 - 保持原来的 AlertDialog 样式
-                    Surface(
-                        modifier = Modifier
-                            .fillMaxWidth(0.7f)
-                            .fillMaxHeight(0.45f)
-                            .align(Alignment.BottomCenter)
-                            .padding(bottom = 24.dp),
-                        shape = RoundedCornerShape(12.dp),
-                        color = MaterialTheme.colorScheme.surface,
-                        tonalElevation = 8.dp
-                    ) {
-                        Column(modifier = Modifier.padding(24.dp)) {
-                            // 标题
+                    Column(modifier = Modifier.padding(24.dp)) {
+                        // 标题
+                        Text(
+                            text = detail.name,
+                            style = MaterialTheme.typography.titleLarge,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        // 内容
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .verticalScroll(rememberScrollState())
+                        ) {
                             Text(
-                                text = detail.name,
-                                style = MaterialTheme.typography.titleLarge,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
+                                text = detail.content ?: "",
+                                style = MaterialTheme.typography.bodyMedium
                             )
-                            Spacer(modifier = Modifier.height(12.dp))
-                            // 内容
-                            Column(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .verticalScroll(rememberScrollState())
-                            ) {
-                                Text(
-                                    text = detail.content ?: "",
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            // 关闭按钮
-                            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
-                                TextButton(onClick = { showDescriptionDialog = false }) {
-                                    Text("关闭")
-                                }
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        // 关闭按钮
+                        Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                            TextButton(onClick = { showDescriptionDialog = false }) {
+                                Text("关闭")
                             }
                         }
                     }
