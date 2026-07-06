@@ -440,7 +440,17 @@ GET /api/cache/episodes
 ```
 说明：只返回 state 为 `completed` 的缓存记录，并附带磁盘文件大小（diskSize）。
 
-### 32. 同步缓存剧集信息
+### 32. 获取已缓存视频系列列表
+```
+GET /api/cache/videos
+```
+说明：按视频（sourceId+videoId）分组，统计每部视频的已缓存集数，返回封面和最新更新时间。
+响应：
+```json
+{ "code": 0, "data": [{ "sourceId": "dyttzyapi", "videoId": "12345", "title": "标题", "picUrl": "url", "cachedCount": 3, "updatedAt": "..." }] }
+```
+
+### 33. 同步缓存剧集信息
 ```
 POST /api/cache/episode/sync
 ```
@@ -454,7 +464,7 @@ POST /api/cache/episode/sync
 { "code": 0, "data": { "state": "completed", ... } }
 ```
 
-### 33. 删除缓存任务
+### 34. 删除缓存任务
 ```
 DELETE /api/cache/task/:sourceId/:videoId/:episodeIndex
 ```
@@ -470,7 +480,7 @@ DELETE /api/cache/task/:sourceId/:videoId/:episodeIndex
 { "code": 0, "message": "删除成功" }
 ```
 
-### 34. 初始化缓存上传（浏览器下载回传模式）
+### 35. 初始化缓存上传（浏览器下载回传模式）
 ```
 POST /api/cache/upload/init
 ```
@@ -484,7 +494,7 @@ POST /api/cache/upload/init
 { "code": 0, "message": "初始化成功" }
 ```
 
-### 35. 上传 TS 切片
+### 36. 上传 TS 切片
 ```
 POST /api/cache/upload/segment?sourceId=dyttzyapi&videoId=12345&episodeIndex=0&segmentIndex=0
 ```
@@ -501,7 +511,7 @@ POST /api/cache/upload/segment?sourceId=dyttzyapi&videoId=12345&episodeIndex=0&s
 { "code": 0, "message": "上传成功" }
 ```
 
-### 36. 完成缓存上传
+### 37. 完成缓存上传
 ```
 POST /api/cache/upload/complete
 ```
@@ -514,7 +524,7 @@ POST /api/cache/upload/complete
 { "code": 0, "message": "完成上传" }
 ```
 
-### 37. 继续缓存（从失败/中断恢复）
+### 38. 继续缓存（从失败/中断恢复）
 ```
 POST /api/cache/upload/continue
 ```
@@ -528,7 +538,7 @@ POST /api/cache/upload/continue
 { "code": 0, "data": { "sourceId": "...", "videoId": "...", "episodeIndex": 0, "episodeUrl": "...", "total": 20, "cached": 10, "progress": 50, "title": "电影名" } }
 ```
 
-### 38. 获取缓存的 TS 分片
+### 39. 获取缓存的 TS 分片
 ```
 GET /api/cache/ts/:sourceId/:videoId/:episodeIndex/:filename
 ```
@@ -541,7 +551,7 @@ GET /api/cache/ts/:sourceId/:videoId/:episodeIndex/:filename
 
 说明：用于缓存剧集的本地点播播放。`Content-Type: video/MP2T`
 
-### 39. 获取缓存的 m3u8 播放列表
+### 40. 获取缓存的 m3u8 播放列表
 ```
 GET /api/cache/:sourceId/:videoId/:episodeIndex.m3u8
 ```
@@ -559,7 +569,7 @@ GET /api/cache/:sourceId/:videoId/:episodeIndex.m3u8
 
 说明：以下接口需要 cookie 中携带有效 token 或 `Authorization: Bearer token`，且用户 role 必须为 `admin`。默认管理员（环境变量 ADMIN_USERNAME 配置）不可删除和修改。
 
-### 40. 获取用户列表
+### 41. 获取用户列表
 ```
 GET /api/admin/users
 ```
@@ -569,7 +579,7 @@ GET /api/admin/users
 ```
 说明：返回所有通过管理后台创建的普通用户列表。
 
-### 41. 创建用户
+### 42. 创建用户
 ```
 POST /api/admin/users
 ```
@@ -583,7 +593,7 @@ POST /api/admin/users
 ```
 错误：400（用户名密码为空或与默认管理员同名）、409（用户已存在）
 
-### 42. 修改用户密码
+### 43. 修改用户密码
 ```
 PUT /api/admin/users/:username
 ```
@@ -601,7 +611,7 @@ PUT /api/admin/users/:username
 ```
 错误：403（默认管理员不可修改）、404（用户不存在）
 
-### 43. 删除用户
+### 44. 删除用户
 ```
 DELETE /api/admin/users/:username
 ```
@@ -616,7 +626,7 @@ DELETE /api/admin/users/:username
 ```
 错误：403（默认管理员不可删除）、404（用户不存在）
 
-### 44. 添加视频源
+### 45. 添加视频源
 ```
 POST /api/admin/sources
 ```
@@ -630,7 +640,7 @@ POST /api/admin/sources
 { "code": 0, "data": { "id": "custom_id", "name": "新资源", "url": "http://...", "enabled": false } }
 ```
 
-### 45. 更新视频源
+### 46. 更新视频源
 ```
 PUT /api/admin/sources/:id
 ```
@@ -647,7 +657,7 @@ PUT /api/admin/sources/:id
 { "code": 0, "data": { "id": "dyttzyapi", "name": "新名称", "url": "...", "enabled": true } }
 ```
 
-### 46. 删除视频源
+### 47. 删除视频源
 ```
 DELETE /api/admin/sources/:id
 ```
@@ -660,7 +670,7 @@ DELETE /api/admin/sources/:id
 { "code": 0, "message": "删除成功" }
 ```
 
-### 47. 切换视频源启用状态
+### 48. 切换视频源启用状态
 ```
 PUT /api/admin/sources/:id/toggle
 ```

@@ -141,23 +141,10 @@ fun TVHomeScreen(
     Column(modifier = Modifier.fillMaxSize()) {
         TopAppBar(
             title = {
-                Box {
-                    TextButton(onClick = { sourceDropdownExpanded = true }) {
-                        Text(selectedSource?.name ?: "选择源", style = MaterialTheme.typography.titleLarge, color = Color(0xFFFFD700))
-                        Icon(Icons.Default.ArrowDropDown, contentDescription = "Select source", tint = Color(0xFFFFD700))
-                    }
-                    DropdownMenu(expanded = sourceDropdownExpanded, onDismissRequest = { sourceDropdownExpanded = false }) {
-                        sources.forEach { source ->
-                            DropdownMenuItem(
-                                text = { Text(source.name) },
-                                onClick = {
-                                    if (source.id != selectedSource?.id) { viewModel.selectSource(source) }
-                                    sourceDropdownExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
+                TvSourceButton(
+                    sourceName = selectedSource?.name ?: "选择源",
+                    onClick = { sourceDropdownExpanded = true }
+                )
             },
             actions = {
                 Box(modifier = Modifier.padding(end = 40.dp)) {
@@ -171,6 +158,44 @@ fun TVHomeScreen(
                 }
             }
         )
+
+        // 站源选择弹窗
+        if (sourceDropdownExpanded) {
+            AlertDialog(
+                onDismissRequest = { sourceDropdownExpanded = false },
+                title = { Text("选择站源") },
+                text = {
+                    Column {
+                        sources.forEach { source ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        if (source.id != selectedSource?.id) {
+                                            viewModel.selectSource(source)
+                                        }
+                                        sourceDropdownExpanded = false
+                                    }
+                                    .padding(vertical = 12.dp, horizontal = 8.dp)
+                                    .background(
+                                        if (source.id == selectedSource?.id) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
+                                        RoundedCornerShape(4.dp)
+                                    )
+                                    .padding(vertical = 8.dp, horizontal = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = source.name,
+                                    color = if (source.id == selectedSource?.id) Color(0xFFFFD700) else Color.White,
+                                    style = MaterialTheme.typography.bodyLarge
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = { }
+            )
+        }
 
         if (parentCategories.isNotEmpty()) {
             LazyRow(
@@ -269,6 +294,35 @@ private fun TvFilterChip(selected: Boolean, onClick: () -> Unit, label: String, 
             .border(2.dp, borderColor, RoundedCornerShape(8.dp))
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) { Text(text = label, color = Color.White) }
+}
+
+@Composable
+private fun TvSourceButton(sourceName: String, onClick: () -> Unit) {
+    var isFocused by remember { mutableStateOf(false) }
+    Box(
+        modifier = Modifier
+            .onFocusChanged { isFocused = it.isFocused }
+            .clickable(onClick = onClick)
+            .background(
+                color = if (isFocused) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
+                shape = RoundedCornerShape(8.dp)
+            )
+            .border(2.dp, if (isFocused) Color(0xFFFFD700) else Color.Transparent, RoundedCornerShape(8.dp))
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = sourceName,
+                style = MaterialTheme.typography.titleLarge,
+                color = Color(0xFFFFD700)
+            )
+            Icon(
+                imageVector = Icons.Default.ArrowDropDown,
+                contentDescription = "Select source",
+                tint = Color(0xFFFFD700)
+            )
+        }
+    }
 }
 
 @Composable

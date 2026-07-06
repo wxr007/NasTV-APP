@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Favorite
@@ -79,6 +80,7 @@ fun TvPlayContent(
     var sortAscending by remember { mutableStateOf(true) }
     var isPlayerMaximized by remember { mutableStateOf(false) }
     var isPlayerFocused by remember { mutableStateOf(false) }
+    var showDescriptionDialog by remember { mutableStateOf(false) }
 
     val maximizedFocusRequester = remember { FocusRequester() }
     LaunchedEffect(isPlayerMaximized) {
@@ -416,7 +418,6 @@ fun TvPlayContent(
                         Spacer(modifier = Modifier.weight(1f))
 
                         // 收藏 + 简介 按钮
-                        var showDescriptionDialog by remember { mutableStateOf(false) }
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                             var isFavoriteFocused by remember { mutableStateOf(false) }
                             val favBorderColor = if (isFavoriteFocused) Color(0xFFFFD700) else Color(0xFF666666)
@@ -470,27 +471,6 @@ fun TvPlayContent(
                                     }
                                 }
                             }
-                        }
-
-                        // 简介弹窗
-                        if (showDescriptionDialog) {
-                            AlertDialog(
-                                onDismissRequest = { showDescriptionDialog = false },
-                                title = { Text(text = detail.name, style = MaterialTheme.typography.titleMedium) },
-                                text = {
-                                    Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                                        Text(
-                                            text = detail.content ?: "",
-                                            style = MaterialTheme.typography.bodyMedium
-                                        )
-                                    }
-                                },
-                                confirmButton = {
-                                    TextButton(onClick = { showDescriptionDialog = false }) {
-                                        Text("关闭")
-                                    }
-                                }
-                            )
                         }
                     }
                 }
@@ -661,6 +641,77 @@ fun TvPlayContent(
                                 }
                                 if (row < episodeRows - 1) {
                                     Spacer(modifier = Modifier.height(8.dp))
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 简介弹窗 - 显示在下半部分
+        if (showDescriptionDialog) {
+            // 拦截返回键，不要退出整个页面
+            androidx.activity.compose.BackHandler(enabled = showDescriptionDialog) {
+                showDescriptionDialog = false
+            }
+            
+            // 使用 Dialog 实现自定义位置
+            androidx.compose.ui.window.Dialog(
+                onDismissRequest = { showDescriptionDialog = false },
+                properties = androidx.compose.ui.window.DialogProperties(
+                    usePlatformDefaultWidth = false
+                )
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp)
+                        .onPreviewKeyEvent { event ->
+                            if (event.type == KeyEventType.KeyDown && 
+                                (event.key == Key.Enter || event.key == Key.NumPadEnter || event.key == Key.Back)) {
+                                showDescriptionDialog = false
+                                true
+                            } else false
+                        },
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    // 弹窗内容定位到下半部分 - 保持原来的 AlertDialog 样式
+                    Surface(
+                        modifier = Modifier
+                            .fillMaxWidth(0.7f)
+                            .fillMaxHeight(0.45f)
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 24.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        tonalElevation = 8.dp
+                    ) {
+                        Column(modifier = Modifier.padding(24.dp)) {
+                            // 标题
+                            Text(
+                                text = detail.name,
+                                style = MaterialTheme.typography.titleLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            // 内容
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .verticalScroll(rememberScrollState())
+                            ) {
+                                Text(
+                                    text = detail.content ?: "",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            // 关闭按钮
+                            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
+                                TextButton(onClick = { showDescriptionDialog = false }) {
+                                    Text("关闭")
                                 }
                             }
                         }
