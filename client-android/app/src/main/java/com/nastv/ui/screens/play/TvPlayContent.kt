@@ -652,7 +652,16 @@ fun TvPlayContent(
         // 简介弹窗 - 直接布局内渲染，避免遮罩变暗
         if (showDescriptionDialog) {
             val descCloseFocusRequester = remember { FocusRequester() }
+            val descScrollState = rememberScrollState()
+            var descScrollDelta by remember { mutableStateOf(0) }
             LaunchedEffect(Unit) { descCloseFocusRequester.requestFocus() }
+            LaunchedEffect(descScrollDelta) {
+                if (descScrollDelta != 0) {
+                    val target = (descScrollState.value + descScrollDelta).coerceIn(0, descScrollState.maxValue)
+                    descScrollState.animateScrollTo(target)
+                    descScrollDelta = 0
+                }
+            }
 
             // 拦截返回键，不要退出整个页面
             androidx.activity.compose.BackHandler(enabled = showDescriptionDialog) {
@@ -663,9 +672,19 @@ fun TvPlayContent(
                 modifier = Modifier
                     .fillMaxSize()
                     .onPreviewKeyEvent { event ->
-                        if (event.type == KeyEventType.KeyDown && event.key == Key.Back) {
-                            showDescriptionDialog = false
-                            true
+                        if (event.type == KeyEventType.KeyDown) {
+                            when (event.key) {
+                                Key.Back -> { showDescriptionDialog = false; true }
+                                Key.DirectionUp -> {
+                                    descScrollDelta = -120
+                                    true
+                                }
+                                Key.DirectionDown -> {
+                                    descScrollDelta = 120
+                                    true
+                                }
+                                else -> false
+                            }
                         } else false
                     },
                 contentAlignment = Alignment.BottomCenter
@@ -695,7 +714,7 @@ fun TvPlayContent(
                         Column(
                             modifier = Modifier
                                 .weight(1f)
-                                .verticalScroll(rememberScrollState())
+                                .verticalScroll(descScrollState)
                         ) {
                             Text(
                                 text = detail.content ?: "",
