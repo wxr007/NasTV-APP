@@ -138,11 +138,15 @@ fun TVHomeScreen(
                 }
             },
             actions = {
-                TvIconButton(onClick = onNavigateToSearch, icon = Icons.Default.Search, contentDescription = "Search")
-                TvIconButton(onClick = onNavigateToFavorites, icon = Icons.Default.Favorite, contentDescription = "Favorites")
-                TvIconButton(onClick = onNavigateToHistory, icon = Icons.Default.History, contentDescription = "History")
-                TvIconButton(onClick = onNavigateToCache, icon = Icons.Default.Storage, contentDescription = "Cache")
-                TvIconButton(onClick = onNavigateToSettings, icon = Icons.Default.Settings, contentDescription = "Settings")
+                Box(modifier = Modifier.padding(end = 40.dp)) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+                        TvIconButton(onClick = onNavigateToSearch, icon = Icons.Default.Search, contentDescription = "Search")
+                        TvIconButton(onClick = onNavigateToFavorites, icon = Icons.Default.Favorite, contentDescription = "Favorites")
+                        TvIconButton(onClick = onNavigateToHistory, icon = Icons.Default.History, contentDescription = "History")
+                        TvIconButton(onClick = onNavigateToCache, icon = Icons.Default.Storage, contentDescription = "Cache")
+                        TvIconButton(onClick = onNavigateToSettings, icon = Icons.Default.Settings, contentDescription = "Settings")
+                    }
+                }
             }
         )
 
