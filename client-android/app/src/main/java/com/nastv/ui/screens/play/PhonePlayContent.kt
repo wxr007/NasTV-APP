@@ -111,29 +111,31 @@ fun PhonePlayContent(
                         }
                     }
 
-                    // 缓冲时显示下载速度
+                    // 右上角始终显示下载速度
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(8.dp)
+                            .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                            .padding(horizontal = 6.dp, vertical = 3.dp)
+                    ) {
+                        Text(
+                            text = formatSpeed(downloadSpeed),
+                            color = Color.White,
+                            fontSize = 11.sp
+                        )
+                    }
+
+                    // 缓冲时显示加载动画
                     if (isBuffering) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier
-                                    .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
-                                    .padding(horizontal = 20.dp, vertical = 12.dp)
-                            ) {
-                                CircularProgressIndicator(
-                                    color = Color.White,
-                                    modifier = Modifier.size(36.dp)
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "缓冲中 ${formatSpeed(downloadSpeed)}",
-                                    color = Color.White,
-                                    fontSize = 14.sp
-                                )
-                            }
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(48.dp)
+                            )
                         }
                     }
 
