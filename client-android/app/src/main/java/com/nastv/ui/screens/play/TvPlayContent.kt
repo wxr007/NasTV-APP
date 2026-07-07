@@ -207,7 +207,6 @@ fun TvPlayContent(
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
-                        .padding(end = 12.dp)
                         .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
@@ -372,7 +371,6 @@ fun TvPlayContent(
                         Box(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
-                                .padding(end = 12.dp)
                                 .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
