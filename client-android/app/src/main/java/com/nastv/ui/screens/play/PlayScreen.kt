@@ -62,6 +62,8 @@ fun PlayScreen(
     var controlsVisible by remember { mutableStateOf(true) }
     var isSeeking by remember { mutableStateOf(false) }
     var seekPosition by remember { mutableStateOf(0f) }
+    var isBuffering by remember { mutableStateOf(false) }
+    var downloadSpeed by remember { mutableStateOf(0L) }
 
     // Seek indicator
     var seekIndicatorText by remember { mutableStateOf<String?>(null) }
@@ -168,12 +170,35 @@ fun PlayScreen(
                                     }
                                     android.util.Log.d("ExoPlayer", "onPlaybackStateChanged: $stateStr, duration=$duration")
                                     if (state == Player.STATE_READY) totalDuration = duration
+                                    isBuffering = state == Player.STATE_BUFFERING
                                 }
                                 override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                                     android.util.Log.e("ExoPlayer", "onPlayerError: ${error.errorCodeName}, ${error.message}", error)
                                 }
                             })
                         }
+                    }
+
+                    // Monitor download speed during buffering by tracking buffered position
+                    LaunchedEffect(isBuffering, exoPlayer) {
+                        if (isBuffering) {
+                            var lastBufferedPosition = exoPlayer.bufferedPosition
+                            var lastTime = System.currentTimeMillis()
+                            while (isBuffering) {
+                                delay(500)
+                                val currentTime = System.currentTimeMillis()
+                                val currentBufferedPosition = exoPlayer.bufferedPosition
+                                val timeDiff = currentTime - lastTime
+                                val positionDiff = currentBufferedPosition - lastBufferedPosition
+                                if (timeDiff > 0 && positionDiff > 0) {
+                                    // Calculate bytes per second (approximate: position is in ms, assume 1 byte per ms for video)
+                                    downloadSpeed = (positionDiff * 1000L / timeDiff) * 500 // rough estimate
+                                }
+                                lastBufferedPosition = currentBufferedPosition
+                                lastTime = currentTime
+                            }
+                        }
+                        downloadSpeed = 0L
                     }
 
                     // Update player state
@@ -389,6 +414,8 @@ fun PlayScreen(
                             currentEpisodeName = currentEpisodeName,
                             isFavorite = isFavorite,
                             cachedEpisodeIndices = cachedEpisodeIndices,
+                            isBuffering = isBuffering,
+                            downloadSpeed = downloadSpeed,
                             onToggleFavorite = { viewModel.toggleFavorite() },
                             onSelectLine = { viewModel.selectLine(it) },
                             onPlayEpisode = { viewModel.playEpisode(it) },
@@ -423,6 +450,8 @@ fun PlayScreen(
                             currentEpisodeName = currentEpisodeName,
                             isFavorite = isFavorite,
                             cachedEpisodeIndices = cachedEpisodeIndices,
+                            isBuffering = isBuffering,
+                            downloadSpeed = downloadSpeed,
                             onToggleFavorite = { viewModel.toggleFavorite() },
                             onSelectLine = { viewModel.selectLine(it) },
                             onPlayEpisode = { viewModel.playEpisode(it) },
@@ -443,6 +472,14 @@ fun PlayScreen(
                 }
             }
         }
+    }
+}
+
+fun formatSpeed(bytesPerSecond: Long): String {
+    return when {
+        bytesPerSecond >= 1_000_000 -> String.format("%.1f MB/s", bytesPerSecond / 1_000_000.0)
+        bytesPerSecond >= 1_000 -> String.format("%.1f KB/s", bytesPerSecond / 1_000.0)
+        else -> "$bytesPerSecond B/s"
     }
 }
 

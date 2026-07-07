@@ -67,6 +67,8 @@ fun TvPlayContent(
     currentEpisodeName: String?,
     isFavorite: Boolean,
     cachedEpisodeIndices: Set<Int>,
+    isBuffering: Boolean,
+    downloadSpeed: Long,
     onToggleFavorite: () -> Unit,
     onSelectLine: (Int) -> Unit,
     onPlayEpisode: (com.nastv.data.model.Episode) -> Unit,
@@ -141,6 +143,32 @@ fun TvPlayContent(
                                 .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
                                 .padding(horizontal = 16.dp, vertical = 8.dp)
                         )
+                    }
+                }
+
+                // 缓冲时显示下载速度
+                if (isBuffering) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier
+                                .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 20.dp, vertical = 12.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(36.dp)
+                            )
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = "缓冲中 ${formatSpeed(downloadSpeed)}",
+                                color = Color.White,
+                                fontSize = 14.sp
+                            )
+                        }
                     }
                 }
             }
