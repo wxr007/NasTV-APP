@@ -228,7 +228,7 @@ fun PlayScreen(
                                 val byteDiff = transferredBytes - lastTransferredBytes
                                 val manualSpeed = if (timeDiff > 0) byteDiff * 1000L / timeDiff else 0L
                                 val bitrateEstimate = bandwidthMeter.bitrateEstimate
-                                val meterSpeed = if (bitrateEstimate > 0 && bitrateEstimate < Long.MAX_VALUE) {
+                                val meterSpeed = if (transferredBytes > 0 && byteDiff > 0 && bitrateEstimate > 0 && bitrateEstimate < Long.MAX_VALUE) {
                                     bitrateEstimate / 8
                                 } else {
                                     0L
