@@ -563,64 +563,69 @@ fun TvPlayContent(
                         }
                     }
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
+                    LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         // 排序按钮
-                        var isSortFocused by remember { mutableStateOf(false) }
-                        val sortBorderColor = if (isSortFocused) Color(0xFFFFD700) else Color(0xFF666666)
-                        Box(
-                            modifier = Modifier
-                                .tvFocusable()
-                                .onFocusChanged { isSortFocused = it.isFocused }
-                                .background(Color(0xFF333333), RoundedCornerShape(8.dp))
-                                .border(2.dp, sortBorderColor, RoundedCornerShape(8.dp))
-                                .clickable { sortAscending = !sortAscending }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                        ) {
-                            Text(text = if (sortAscending) "倒序" else "正序", style = MaterialTheme.typography.bodyMedium, color = Color.White)
+                        item {
+                            var isSortFocused by remember { mutableStateOf(false) }
+                            val sortBorderColor = if (isSortFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                            Box(
+                                modifier = Modifier
+                                    .tvFocusable()
+                                    .onFocusChanged { isSortFocused = it.isFocused }
+                                    .background(Color(0xFF333333), RoundedCornerShape(8.dp))
+                                    .border(2.dp, sortBorderColor, RoundedCornerShape(8.dp))
+                                    .clickable { sortAscending = !sortAscending }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text(text = if (sortAscending) "倒序" else "正序", style = MaterialTheme.typography.bodyMedium, color = Color.White)
+                            }
                         }
 
                         // 箭头按钮
-                        var isArrowFocused by remember { mutableStateOf(false) }
-                        val arrowBorderColor = if (isArrowFocused) Color(0xFFFFD700) else Color(0xFF666666)
-                        Box(
-                            modifier = Modifier
-                                .tvFocusable()
-                                .onFocusChanged { isArrowFocused = it.isFocused }
-                                .background(Color(0xFF333333), RoundedCornerShape(8.dp))
-                                .border(2.dp, arrowBorderColor, RoundedCornerShape(8.dp))
-                                .clickable { sortAscending = !sortAscending }
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
-                        ) {
-                            Icon(
-                                imageVector = if (sortAscending) Icons.Default.ExpandMore else Icons.Default.ExpandLess,
-                                contentDescription = "方向",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
+                        item {
+                            var isArrowFocused by remember { mutableStateOf(false) }
+                            val arrowBorderColor = if (isArrowFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                            Box(
+                                modifier = Modifier
+                                    .tvFocusable()
+                                    .onFocusChanged { isArrowFocused = it.isFocused }
+                                    .background(Color(0xFF333333), RoundedCornerShape(8.dp))
+                                    .border(2.dp, arrowBorderColor, RoundedCornerShape(8.dp))
+                                    .clickable { sortAscending = !sortAscending }
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (sortAscending) Icons.Default.ExpandMore else Icons.Default.ExpandLess,
+                                    contentDescription = "方向",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
                         }
 
                         // 范围分组按钮
                         for (g in 0 until groupCount) {
-                            val startIdx = g * groupSize + 1
-                            val endIdx = minOf((g + 1) * groupSize, totalEpisodes)
-                            var isGroupFocused by remember { mutableStateOf(false) }
-                            val groupBorderColor = if (isGroupFocused) Color(0xFFFFD700) else Color(0xFF666666)
-                            val targetRow = (startIdx - 1) / episodeCols
-                            val scrollPositionPx = with(density) { (targetRow * 56).dp.roundToPx() }
-                            Box(
-                                modifier = Modifier
-                                    .tvFocusable()
-                                    .onFocusChanged { isGroupFocused = it.isFocused }
-                                    .background(Color(0xFF333333), RoundedCornerShape(8.dp))
-                                    .border(2.dp, groupBorderColor, RoundedCornerShape(8.dp))
-                                    .clickable { scrollTarget = scrollPositionPx }
-                                    .padding(horizontal = 12.dp, vertical = 6.dp)
-                            ) {
-                                Text(text = "$startIdx-$endIdx", style = MaterialTheme.typography.bodyMedium, color = Color.White)
+                            item {
+                                val startIdx = g * groupSize + 1
+                                val endIdx = minOf((g + 1) * groupSize, totalEpisodes)
+                                var isGroupFocused by remember { mutableStateOf(false) }
+                                val groupBorderColor = if (isGroupFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                                val targetRow = (startIdx - 1) / episodeCols
+                                val scrollPositionPx = with(density) { (targetRow * 56).dp.roundToPx() }
+                                Box(
+                                    modifier = Modifier
+                                        .tvFocusable()
+                                        .onFocusChanged { isGroupFocused = it.isFocused }
+                                        .background(Color(0xFF333333), RoundedCornerShape(8.dp))
+                                        .border(2.dp, groupBorderColor, RoundedCornerShape(8.dp))
+                                        .clickable { scrollTarget = scrollPositionPx }
+                                        .padding(horizontal = 12.dp, vertical = 6.dp)
+                                ) {
+                                    Text(text = "$startIdx-$endIdx", style = MaterialTheme.typography.bodyMedium, color = Color.White)
+                                }
                             }
                         }
                     }

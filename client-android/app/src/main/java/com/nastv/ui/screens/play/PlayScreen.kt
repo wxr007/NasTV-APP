@@ -223,20 +223,15 @@ fun PlayScreen(
                         LaunchedEffect(exoPlayer, bandwidthMeter) {
                             while (true) {
                                 delay(500)
-                                val now = System.currentTimeMillis()
-                                val timeDiff = now - lastSpeedTime
-                                val byteDiff = transferredBytes - lastTransferredBytes
-                                val manualSpeed = if (timeDiff > 0) byteDiff * 1000L / timeDiff else 0L
+                                val isPlaying = exoPlayer.isPlaying
                                 val bitrateEstimate = bandwidthMeter.bitrateEstimate
-                                val meterSpeed = if (transferredBytes > 10_000 && byteDiff > 0 && bitrateEstimate > 0 && bitrateEstimate < Long.MAX_VALUE) {
+                                val meterSpeed = if (isPlaying && bitrateEstimate > 0 && bitrateEstimate < Long.MAX_VALUE) {
                                     bitrateEstimate / 8
                                 } else {
                                     0L
                                 }
-                                downloadSpeed = maxOf(manualSpeed, meterSpeed)
-                                android.util.Log.d("SpeedDebug", "speed: manual=${formatSpeed(manualSpeed)}, meter=${formatSpeed(meterSpeed)}, final=${formatSpeed(downloadSpeed)}, totalTransferred=$transferredBytes, bitrateEstimate=$bitrateEstimate")
-                                lastSpeedTime = now
-                                lastTransferredBytes = transferredBytes
+                                downloadSpeed = meterSpeed
+                                android.util.Log.d("SpeedDebug", "speed: isPlaying=$isPlaying, bitrateEstimate=$bitrateEstimate, final=${formatSpeed(downloadSpeed)}")
                             }
                         }
 
