@@ -29,6 +29,12 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.datasource.DefaultDataSource
+import androidx.media3.datasource.TransferListener
+import androidx.media3.datasource.DataSource
+import androidx.media3.datasource.DataSpec
 import androidx.media3.ui.PlayerView
 import com.nastv.ui.theme.LocalIsTv
 import kotlinx.coroutines.delay
@@ -151,55 +157,88 @@ fun PlayScreen(
             }
             videoDetail != null -> {
                 videoDetail?.let { detail ->
-                    val context = LocalContext.current
-                    val exoPlayer = remember {
-                        ExoPlayer.Builder(context).build().apply {
-                            playWhenReady = true
-                            addListener(object : Player.Listener {
-                                override fun onIsPlayingChanged(playing: Boolean) {
-                                    android.util.Log.d("ExoPlayer", "onIsPlayingChanged: $playing")
-                                    isPlaying = playing
-                                }
-                                override fun onPlaybackStateChanged(state: Int) {
-                                    val stateStr = when (state) {
-                                        Player.STATE_IDLE -> "IDLE"
-                                        Player.STATE_BUFFERING -> "BUFFERING"
-                                        Player.STATE_READY -> "READY"
-                                        Player.STATE_ENDED -> "ENDED"
-                                        else -> "UNKNOWN"
-                                    }
-                                    android.util.Log.d("ExoPlayer", "onPlaybackStateChanged: $stateStr, duration=$duration")
-                                    if (state == Player.STATE_READY) totalDuration = duration
-                                    isBuffering = state == Player.STATE_BUFFERING
-                                }
-                                override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                                    android.util.Log.e("ExoPlayer", "onPlayerError: ${error.errorCodeName}, ${error.message}", error)
-                                }
-                            })
-                        }
-                    }
+                        val context = LocalContext.current
 
-                    // Monitor download speed during buffering by tracking buffered position
-                    LaunchedEffect(isBuffering, exoPlayer) {
-                        if (isBuffering) {
-                            var lastBufferedPosition = exoPlayer.bufferedPosition
-                            var lastTime = System.currentTimeMillis()
-                            while (isBuffering) {
-                                delay(500)
-                                val currentTime = System.currentTimeMillis()
-                                val currentBufferedPosition = exoPlayer.bufferedPosition
-                                val timeDiff = currentTime - lastTime
-                                val positionDiff = currentBufferedPosition - lastBufferedPosition
-                                if (timeDiff > 0 && positionDiff > 0) {
-                                    // Calculate bytes per second (approximate: position is in ms, assume 1 byte per ms for video)
-                                    downloadSpeed = (positionDiff * 1000L / timeDiff) * 500 // rough estimate
+                        val bandwidthMeter = remember {
+                            DefaultBandwidthMeter.Builder(context).build()
+                        }
+
+                        var transferredBytes by remember { mutableLongStateOf(0L) }
+                        var lastSpeedTime by remember { mutableLongStateOf(System.currentTimeMillis()) }
+                        var lastTransferredBytes by remember { mutableLongStateOf(0L) }
+
+                        val transferListener = object : TransferListener {
+                            override fun onTransferInitializing(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) {
+                                android.util.Log.d("SpeedDebug", "onTransferInitializing: isNetwork=$isNetwork, source=${source.javaClass.simpleName}")
+                            }
+                            override fun onTransferStart(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) {
+                                android.util.Log.d("SpeedDebug", "onTransferStart: isNetwork=$isNetwork, source=${source.javaClass.simpleName}")
+                            }
+                            override fun onBytesTransferred(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean, bytesTransferred: Int) {
+                                if (isNetwork) {
+                                    transferredBytes += bytesTransferred.toLong()
                                 }
-                                lastBufferedPosition = currentBufferedPosition
-                                lastTime = currentTime
+                                android.util.Log.d("SpeedDebug", "onBytesTransferred: isNetwork=$isNetwork, bytes=$bytesTransferred, total=$transferredBytes")
+                            }
+                            override fun onTransferEnd(source: DataSource, dataSpec: DataSpec, isNetwork: Boolean) {
+                                android.util.Log.d("SpeedDebug", "onTransferEnd: isNetwork=$isNetwork")
                             }
                         }
-                        downloadSpeed = 0L
-                    }
+
+                        val dataSourceFactory = DefaultDataSource.Factory(context)
+                            .setTransferListener(transferListener)
+
+                        val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
+
+                        val exoPlayer = remember {
+                            ExoPlayer.Builder(context)
+                                .setMediaSourceFactory(mediaSourceFactory)
+                                .setBandwidthMeter(bandwidthMeter)
+                                .build().apply {
+                                playWhenReady = true
+                                addListener(object : Player.Listener {
+                                    override fun onIsPlayingChanged(playing: Boolean) {
+                                        android.util.Log.d("ExoPlayer", "onIsPlayingChanged: $playing")
+                                        isPlaying = playing
+                                    }
+                                    override fun onPlaybackStateChanged(state: Int) {
+                                        val stateStr = when (state) {
+                                            Player.STATE_IDLE -> "IDLE"
+                                            Player.STATE_BUFFERING -> "BUFFERING"
+                                            Player.STATE_READY -> "READY"
+                                            Player.STATE_ENDED -> "ENDED"
+                                            else -> "UNKNOWN"
+                                        }
+                                        android.util.Log.d("ExoPlayer", "onPlaybackStateChanged: $stateStr, duration=$duration")
+                                        if (state == Player.STATE_READY) totalDuration = duration
+                                        isBuffering = state == Player.STATE_BUFFERING
+                                    }
+                                    override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                                        android.util.Log.e("ExoPlayer", "onPlayerError: ${error.errorCodeName}, ${error.message}", error)
+                                    }
+                                })
+                            }
+                        }
+
+                        LaunchedEffect(exoPlayer, bandwidthMeter) {
+                            while (true) {
+                                delay(500)
+                                val now = System.currentTimeMillis()
+                                val timeDiff = now - lastSpeedTime
+                                val byteDiff = transferredBytes - lastTransferredBytes
+                                val manualSpeed = if (timeDiff > 0) byteDiff * 1000L / timeDiff else 0L
+                                val bitrateEstimate = bandwidthMeter.bitrateEstimate
+                                val meterSpeed = if (bitrateEstimate > 0 && bitrateEstimate < Long.MAX_VALUE) {
+                                    bitrateEstimate / 8
+                                } else {
+                                    0L
+                                }
+                                downloadSpeed = maxOf(manualSpeed, meterSpeed)
+                                android.util.Log.d("SpeedDebug", "speed: manual=${formatSpeed(manualSpeed)}, meter=${formatSpeed(meterSpeed)}, final=${formatSpeed(downloadSpeed)}, totalTransferred=$transferredBytes, bitrateEstimate=$bitrateEstimate")
+                                lastSpeedTime = now
+                                lastTransferredBytes = transferredBytes
+                            }
+                        }
 
                     // Update player state
                     LaunchedEffect(exoPlayer) {

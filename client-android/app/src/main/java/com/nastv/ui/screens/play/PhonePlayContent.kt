@@ -115,12 +115,12 @@ fun PhonePlayContent(
                     Box(
                         modifier = Modifier
                             .align(Alignment.TopEnd)
-                            .padding(8.dp)
+                            .padding(end = 8.dp)
                             .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
                             .padding(horizontal = 6.dp, vertical = 3.dp)
                     ) {
                         Text(
-                            text = formatSpeed(downloadSpeed),
+                            text = formatSpeed(downloadSpeed).also { android.util.Log.d("SpeedDebugUI", "PhonePlayContent speed: $it, raw=$downloadSpeed") },
                             color = Color.White,
                             fontSize = 11.sp
                         )

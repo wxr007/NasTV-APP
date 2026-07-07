@@ -146,21 +146,6 @@ fun TvPlayContent(
                     }
                 }
 
-                // 右上角始终显示下载速度
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(12.dp)
-                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
-                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                ) {
-                    Text(
-                        text = formatSpeed(downloadSpeed),
-                        color = Color.White,
-                        fontSize = 12.sp
-                    )
-                }
-
                 // 缓冲时显示加载动画
                 if (isBuffering) {
                     Box(
@@ -217,6 +202,21 @@ fun TvPlayContent(
                     }
             ) {
                 playerContent()
+
+                // 右上角始终显示下载速度
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(end = 12.dp)
+                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = formatSpeed(downloadSpeed).also { android.util.Log.d("SpeedDebugUI", "TvMaximized speed: $it, raw=$downloadSpeed") },
+                        color = Color.White,
+                        fontSize = 12.sp
+                    )
+                }
 
                 // 暂停时显示半透明播放图标 + 时间（AndroidView 之上无法用普通 Compose 覆盖）
                 if (!isPlaying && !controlsVisible) {
@@ -367,6 +367,21 @@ fun TvPlayContent(
                             .clickable { isPlayerMaximized = true }
                     ) {
                         playerContent()
+
+                        // 右上角始终显示下载速度
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(end = 12.dp)
+                                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = formatSpeed(downloadSpeed).also { android.util.Log.d("SpeedDebugUI", "TvNormal speed: $it, raw=$downloadSpeed") },
+                                color = Color.White,
+                                fontSize = 12.sp
+                            )
+                        }
 
                         if (controlsVisible) {
                             Column(
