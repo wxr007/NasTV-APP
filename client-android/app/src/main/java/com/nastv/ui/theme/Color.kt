@@ -22,3 +22,7 @@ val NasTVSuccess = Color(0xFF22C55E)
 val NasTVWarning = Color(0xFFF59E0B)
 val NasTVTextPrimary = Color(0xFFF5F5F5)
 val NasTVTextSecondary = Color(0xFF9CA3AF)
+
+// TV端专用颜色 - 金黄色
+val NasTVPrimaryGold = Color(0xFFFFD700)
+val NasTVSecondaryGold = Color(0xFFFFA500)

@@ -3,6 +3,7 @@ package com.nastv
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -33,11 +34,22 @@ class MainActivity : ComponentActivity() {
         setContent {
             val context = LocalContext.current
             val forceTvMode by preferencesRepository.forceTvModeFlow.collectAsState(initial = false)
+            val themeMode by preferencesRepository.themeModeFlow.collectAsState(initial = "system")
+            
             val isTv = remember(forceTvMode) {
                 if (forceTvMode) true else DeviceUtils.isTvDevice(context)
             }
+            
+            val systemDark = isSystemInDarkTheme()
+            val darkTheme = remember(themeMode, systemDark) {
+                when (themeMode) {
+                    "dark" -> true
+                    "light" -> false
+                    else -> systemDark
+                }
+            }
 
-            NasTVTheme(isTv = isTv) {
+            NasTVTheme(darkTheme = darkTheme, isTv = isTv) {
                 CompositionLocalProvider(LocalIsTv provides isTv) {
                     Surface(
                         modifier = Modifier.fillMaxSize(),

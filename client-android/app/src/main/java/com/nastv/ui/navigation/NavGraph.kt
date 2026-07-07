@@ -1,12 +1,19 @@
 package com.nastv.ui.navigation
 
+import android.util.Log
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.hilt.navigation.compose.hiltViewModel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -21,6 +28,7 @@ import com.nastv.ui.screens.home.TVHomeScreen
 import com.nastv.ui.screens.login.LoginScreen
 import com.nastv.ui.screens.play.PlayScreen
 import com.nastv.ui.screens.search.SearchScreen
+import com.nastv.ui.screens.server.ServerSelectScreen
 import com.nastv.ui.screens.settings.SettingsScreen
 import com.nastv.ui.theme.LocalIsTv
 
@@ -29,25 +37,71 @@ fun NavGraph(
     navController: NavHostController,
     preferencesRepository: PreferencesRepository = hiltViewModel<PreferencesViewModel>().repository
 ) {
-    val isLoggedIn by preferencesRepository.authTokenFlow.collectAsState(initial = null)
-
-    val startDestination = if (isLoggedIn.isNullOrEmpty()) Screen.Login.route else Screen.Home.route
+    var initialNavigationDone by remember { mutableStateOf(false) }
+    
+    Log.d("NavGraph", "NavGraph recomposed, initialNavigationDone=$initialNavigationDone")
+    
+    // 初始导航：从 DataStore 读取当前状态后导航到正确的页面
+    LaunchedEffect(Unit) {
+        val token = preferencesRepository.authTokenFlow.first()
+        val serverId = preferencesRepository.lastServerIdFlow.first()
+        Log.d("NavGraph", "Initial navigation check: token=$token, lastServerId=$serverId")
+        
+        val destination = when {
+            !token.isNullOrEmpty() -> Screen.Home.route
+            !serverId.isNullOrEmpty() -> Screen.Login.createRoute(serverId)
+            else -> null
+        }
+        
+        if (destination != null) {
+            Log.d("NavGraph", "Initial navigation to: $destination")
+            navController.navigate(destination) {
+                popUpTo(Screen.ServerSelect.route) { inclusive = true }
+            }
+        }
+        initialNavigationDone = true
+    }
 
     NavHost(
         navController = navController,
-        startDestination = startDestination
+        startDestination = Screen.ServerSelect.route
     ) {
         composable(
-            route = Screen.Login.route,
+            route = Screen.ServerSelect.route,
             enterTransition = { EnterTransition.None },
             exitTransition = { ExitTransition.None },
             popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None }
         ) {
+            ServerSelectScreen(
+                onServerSelected = { serverId ->
+                    navController.navigate(Screen.Login.createRoute(serverId))
+                }
+            )
+        }
+        
+        composable(
+            route = Screen.Login.route,
+            arguments = listOf(
+                navArgument("serverId") { type = NavType.StringType }
+            ),
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) { backStackEntry ->
+            val serverId = backStackEntry.arguments?.getString("serverId") ?: ""
+            Log.d("NavGraph", "Login composable entered, serverId=$serverId")
             LoginScreen(
+                serverId = serverId,
                 onLoginSuccess = {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
+                    }
+                },
+                onBack = {
+                    navController.navigate(Screen.ServerSelect.route) {
+                        popUpTo(Screen.ServerSelect.route) { inclusive = true }
                     }
                 }
             )
@@ -186,9 +240,31 @@ fun NavGraph(
             popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None }
         ) {
+            val scope = rememberCoroutineScope()
             SettingsScreen(
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onLogout = {
+                    // 退出登录后，从 DataStore 读取 lastServerId，导航到登录页面
+                    scope.launch {
+                        val serverId = preferencesRepository.lastServerIdFlow.first()
+                        Log.d("NavGraph", "onLogout called, lastServerId=$serverId")
+                        if (!serverId.isNullOrEmpty()) {
+                            // 导航到登录页，弹出到服务器选择页
+                            val route = Screen.Login.createRoute(serverId)
+                            Log.d("NavGraph", "Navigating to login with route: $route")
+                            navController.navigate(route) {
+                                popUpTo(Screen.ServerSelect.route) { inclusive = true }
+                            }
+                        } else {
+                            // 如果没有 lastServerId，导航到服务器选择页面
+                            Log.d("NavGraph", "Navigating to server select")
+                            navController.navigate(Screen.ServerSelect.route) {
+                                popUpTo(Screen.ServerSelect.route) { inclusive = true }
+                            }
+                        }
+                    }
                 }
             )
         }

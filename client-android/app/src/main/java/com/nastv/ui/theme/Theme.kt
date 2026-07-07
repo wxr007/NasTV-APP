@@ -26,6 +26,21 @@ private val DarkColorScheme = darkColorScheme(
     error = NasTVError
 )
 
+// TV端专用颜色方案 - 金黄色
+private val TvDarkColorScheme = darkColorScheme(
+    primary = NasTVPrimaryGold,
+    secondary = NasTVSecondaryGold,
+    tertiary = Pink80,
+    background = NasTVBackground,
+    surface = NasTVSurface,
+    onPrimary = Color.Black,
+    onSecondary = Color.Black,
+    onTertiary = Color.White,
+    onBackground = NasTVTextPrimary,
+    onSurface = NasTVTextPrimary,
+    error = NasTVError
+)
+
 private val LightColorScheme = lightColorScheme(
     primary = NasTVPrimary,
     secondary = NasTVSecondary,
@@ -46,9 +61,9 @@ fun NasTVTheme(
     isTv: Boolean = false,
     content: @Composable () -> Unit
 ) {
-    // TV 端强制使用暗色主题
+    // TV 端使用金黄色暗色主题
     val colorScheme = when {
-        isTv -> DarkColorScheme
+        isTv -> TvDarkColorScheme
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }

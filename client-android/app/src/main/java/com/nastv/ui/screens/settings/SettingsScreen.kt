@@ -1,5 +1,6 @@
 package com.nastv.ui.screens.settings
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -18,12 +19,16 @@ import kotlin.math.roundToInt
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
+    onLogout: () -> Unit = {},
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val isTv = LocalIsTv.current
     val useImageProxy by viewModel.useImageProxy.collectAsState()
     val seekDuration by viewModel.seekDuration.collectAsState()
     val forceTvMode by viewModel.forceTvMode.collectAsState()
+    val themeMode by viewModel.themeMode.collectAsState()
+    
+    var showThemeDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -53,7 +58,10 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(if (isTv) 16.dp else 8.dp))
 
             Button(
-                onClick = { viewModel.logout() },
+                onClick = { 
+                    viewModel.logout()
+                    onLogout()
+                },
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.error
@@ -173,6 +181,86 @@ fun SettingsScreen(
                 style = if (isTv) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            
+            if (!isTv) {
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                Text(
+                    text = "外观",
+                    style = MaterialTheme.typography.titleLarge
+                )
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "主题",
+                            style = MaterialTheme.typography.bodyLarge
+                        )
+                        Text(
+                            text = when (themeMode) {
+                                "dark" -> "暗色主题"
+                                "light" -> "亮色主题"
+                                else -> "跟随系统"
+                            },
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    TextButton(onClick = { showThemeDialog = true }) {
+                        Text("更改")
+                    }
+                }
+            }
         }
+    }
+    
+    if (showThemeDialog) {
+        AlertDialog(
+            onDismissRequest = { showThemeDialog = false },
+            title = { Text("选择主题") },
+            text = {
+                Column {
+                    listOf(
+                        "system" to "跟随系统",
+                        "dark" to "暗色主题",
+                        "light" to "亮色主题"
+                    ).forEach { (value, label) ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    viewModel.setThemeMode(value)
+                                    showThemeDialog = false
+                                }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            RadioButton(
+                                selected = themeMode == value,
+                                onClick = {
+                                    viewModel.setThemeMode(value)
+                                    showThemeDialog = false
+                                }
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(label)
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showThemeDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
     }
 }

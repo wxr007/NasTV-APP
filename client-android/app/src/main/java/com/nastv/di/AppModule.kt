@@ -37,6 +37,10 @@ annotation class AuthInterceptor
 @Retention(AnnotationRetention.BINARY)
 annotation class BaseUrlInterceptor
 
+@Qualifier
+@Retention(AnnotationRetention.BINARY)
+annotation class HealthCheckClient
+
 @Module
 @InstallIn(SingletonComponent::class)
 object AppModule {
@@ -136,6 +140,21 @@ object AppModule {
             .connectTimeout(Constants.CONNECT_TIMEOUT, TimeUnit.SECONDS)
             .readTimeout(Constants.READ_TIMEOUT, TimeUnit.SECONDS)
             .writeTimeout(Constants.WRITE_TIMEOUT, TimeUnit.SECONDS)
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    @HealthCheckClient
+    fun provideHealthCheckOkHttpClient(): OkHttpClient {
+        val loggingInterceptor = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+
+        return OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
+            .connectTimeout(10, TimeUnit.SECONDS)
+            .readTimeout(10, TimeUnit.SECONDS)
             .build()
     }
 

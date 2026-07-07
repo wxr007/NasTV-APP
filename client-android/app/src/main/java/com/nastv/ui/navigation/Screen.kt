@@ -1,7 +1,12 @@
 package com.nastv.ui.navigation
 
 sealed class Screen(val route: String) {
-    object Login : Screen("login")
+    object ServerSelect : Screen("server_select")
+    object Login : Screen("login/{serverId}") {
+        fun createRoute(serverId: String): String {
+            return "login/$serverId"
+        }
+    }
     object Home : Screen("home")
     object Search : Screen("search")
     object Play : Screen("play/{sourceId}/{videoId}") {

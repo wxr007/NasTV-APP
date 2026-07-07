@@ -26,11 +26,15 @@ class SettingsViewModel @Inject constructor(
     private val _forceTvMode = MutableStateFlow(false)
     val forceTvMode: StateFlow<Boolean> = _forceTvMode.asStateFlow()
 
+    private val _themeMode = MutableStateFlow("system") // "system", "dark", "light"
+    val themeMode: StateFlow<String> = _themeMode.asStateFlow()
+
     init {
         viewModelScope.launch {
             _useImageProxy.value = preferencesRepository.useImageProxyFlow.first()
             _seekDuration.value = preferencesRepository.seekDurationFlow.first()
             _forceTvMode.value = preferencesRepository.forceTvModeFlow.first()
+            _themeMode.value = preferencesRepository.themeModeFlow.first()
         }
     }
 
@@ -64,6 +68,13 @@ class SettingsViewModel @Inject constructor(
         _forceTvMode.value = force
         viewModelScope.launch {
             preferencesRepository.saveForceTvMode(force)
+        }
+    }
+
+    fun setThemeMode(mode: String) {
+        _themeMode.value = mode
+        viewModelScope.launch {
+            preferencesRepository.saveThemeMode(mode)
         }
     }
 
