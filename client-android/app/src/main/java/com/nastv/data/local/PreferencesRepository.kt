@@ -31,6 +31,7 @@ class PreferencesRepository @Inject constructor(
         val SEEK_DURATION_KEY = intPreferencesKey(Constants.PREF_SEEK_DURATION)
         val FORCE_TV_MODE_KEY = booleanPreferencesKey(Constants.PREF_FORCE_TV_MODE)
         val THEME_MODE_KEY = stringPreferencesKey(Constants.PREF_THEME_MODE)
+        val USER_ROLE_KEY = stringPreferencesKey(Constants.PREF_USER_ROLE)
         
         // 新增：服务器和账号存储
         val SERVERS_KEY = stringPreferencesKey("servers_json")
@@ -67,6 +68,10 @@ class PreferencesRepository @Inject constructor(
         preferences[THEME_MODE_KEY] ?: "system" // "system", "dark", "light"
     }
 
+    val userRoleFlow: Flow<String?> = dataStore.data.map { preferences ->
+        preferences[USER_ROLE_KEY]
+    }
+
     suspend fun getServerUrl(): String {
         return dataStore.data.map { preferences ->
             preferences[SERVER_URL_KEY] ?: Constants.DEFAULT_BASE_URL
@@ -88,6 +93,16 @@ class PreferencesRepository @Inject constructor(
     suspend fun saveUsername(username: String) {
         dataStore.edit { preferences ->
             preferences[USERNAME_KEY] = username
+        }
+    }
+
+    suspend fun saveUserRole(role: String?) {
+        dataStore.edit { preferences ->
+            if (role != null) {
+                preferences[USER_ROLE_KEY] = role
+            } else {
+                preferences.remove(USER_ROLE_KEY)
+            }
         }
     }
 
@@ -119,6 +134,7 @@ class PreferencesRepository @Inject constructor(
         dataStore.edit { preferences ->
             preferences.remove(AUTH_TOKEN_KEY)
             preferences.remove(USERNAME_KEY)
+            preferences.remove(USER_ROLE_KEY)
         }
     }
 

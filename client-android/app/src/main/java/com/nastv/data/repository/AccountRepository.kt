@@ -52,6 +52,7 @@ class AccountRepository @Inject constructor(
                 val user = response.data
                 preferencesRepository.saveAuthToken(user.token)
                 preferencesRepository.saveUsername(user.username)
+                preferencesRepository.saveUserRole(user.role)
                 preferencesRepository.updateLastUsed(account.serverId, account.id)
                 Result.Success(user)
             } else {

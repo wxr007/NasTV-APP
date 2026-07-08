@@ -12,6 +12,7 @@ object Constants {
     const val PREF_SEEK_DURATION = "seek_duration"
     const val PREF_FORCE_TV_MODE = "force_tv_mode"
     const val PREF_THEME_MODE = "theme_mode" // "system", "dark", "light"
+    const val PREF_USER_ROLE = "user_role"
 
     // Default server URL (placeholder, replaced by interceptor at runtime)
     const val DEFAULT_BASE_URL = "http://placeholder/"

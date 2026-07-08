@@ -29,12 +29,30 @@ class SettingsViewModel @Inject constructor(
     private val _themeMode = MutableStateFlow("system") // "system", "dark", "light"
     val themeMode: StateFlow<String> = _themeMode.asStateFlow()
 
+    private val _username = MutableStateFlow<String?>(null)
+    val username: StateFlow<String?> = _username.asStateFlow()
+
+    private val _userRole = MutableStateFlow<String?>(null)
+    val userRole: StateFlow<String?> = _userRole.asStateFlow()
+
+    private val _serverName = MutableStateFlow<String?>(null)
+    val serverName: StateFlow<String?> = _serverName.asStateFlow()
+
     init {
         viewModelScope.launch {
             _useImageProxy.value = preferencesRepository.useImageProxyFlow.first()
             _seekDuration.value = preferencesRepository.seekDurationFlow.first()
             _forceTvMode.value = preferencesRepository.forceTvModeFlow.first()
             _themeMode.value = preferencesRepository.themeModeFlow.first()
+            _username.value = preferencesRepository.usernameFlow.first()
+            _userRole.value = preferencesRepository.userRoleFlow.first()
+            
+            // 获取当前登录的服务器名称
+            val lastServerId = preferencesRepository.lastServerIdFlow.first()
+            if (lastServerId != null) {
+                val servers = preferencesRepository.serversFlow.first()
+                _serverName.value = servers.find { it.id == lastServerId }?.name
+            }
         }
     }
 
