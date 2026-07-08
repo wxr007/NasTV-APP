@@ -938,7 +938,7 @@ fun TvPlayContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .focusRequester(sliderFocusRequester)
-                                .tvFocusable()
+                                .focusProperties { canFocus = true }
                                 .onFocusChanged { isSliderFocused = it.isFocused }
                                 .onKeyEvent { event ->
                                     if (event.type == KeyEventType.KeyDown) {
