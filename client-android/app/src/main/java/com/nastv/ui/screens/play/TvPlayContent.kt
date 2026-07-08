@@ -30,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
+import kotlinx.coroutines.delay
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
@@ -108,12 +109,14 @@ fun TvPlayContent(
     // 关闭简介弹窗后聚焦到简介按钮
     LaunchedEffect(showDescriptionDialog) {
         if (!showDescriptionDialog) {
+            delay(100)
             descFocusRequester.requestFocus()
         }
     }
     // 关闭设置抽屉后聚焦到设置按钮
     LaunchedEffect(showSettingsDrawer) {
         if (!showSettingsDrawer) {
+            delay(100)
             settingsFocusRequester.requestFocus()
         }
     }
