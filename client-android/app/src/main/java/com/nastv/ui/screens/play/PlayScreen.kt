@@ -81,6 +81,7 @@ fun PlayScreen(
     var seekPosition by remember { mutableStateOf(0f) }
     var isBuffering by remember { mutableStateOf(false) }
     var downloadSpeed by remember { mutableStateOf(0L) }
+    var switchingEpisode by remember { mutableStateOf(false) }
 
     // Seek indicator
     var seekIndicatorText by remember { mutableStateOf<String?>(null) }
@@ -294,20 +295,22 @@ fun PlayScreen(
 
                     LaunchedEffect(playUrl, exoPlayer) {
                         playUrl?.let { url ->
-                            // 保存当前播放位置（切换线路或缓冲重建前）
-                            val positionBeforeSwitch = exoPlayer.currentPosition
                             val mediaItem = MediaItem.fromUri(url)
                             exoPlayer.setMediaItem(mediaItem)
                             exoPlayer.prepare()
-                            // 优先使用切换前位置（>0 说明是切换线路），否则使用缓冲重建保存的位置
-                            val restorePos = if (positionBeforeSwitch > 0) positionBeforeSwitch else savedPositionForRestore
-                            if (restorePos > 0) {
-                                var attempts = 0
-                                while (exoPlayer.duration <= 0 && attempts < 20) { delay(300); attempts++ }
-                                if (exoPlayer.duration > 0) {
-                                    exoPlayer.seekTo(restorePos.coerceAtMost(exoPlayer.duration))
+                            if (!switchingEpisode) {
+                                // 优先使用切换前位置（切换线路），否则使用缓冲重建保存的位置
+                                val positionBeforeSwitch = exoPlayer.currentPosition
+                                val restorePos = if (positionBeforeSwitch > 0) positionBeforeSwitch else savedPositionForRestore
+                                if (restorePos > 0) {
+                                    var attempts = 0
+                                    while (exoPlayer.duration <= 0 && attempts < 20) { delay(300); attempts++ }
+                                    if (exoPlayer.duration > 0) {
+                                        exoPlayer.seekTo(restorePos.coerceAtMost(exoPlayer.duration))
+                                    }
                                 }
                             }
+                            switchingEpisode = false
                         }
                     }
 
@@ -500,7 +503,10 @@ fun PlayScreen(
                             bufferMaxDuration = bufferMaxDuration,
                             onToggleFavorite = { viewModel.toggleFavorite() },
                             onSelectLine = { viewModel.selectLine(it) },
-                            onPlayEpisode = { viewModel.playEpisode(it) },
+                            onPlayEpisode = { episode ->
+                                switchingEpisode = true
+                                viewModel.playEpisode(episode)
+                            },
                             onToggleFullscreen = { viewModel.toggleFullscreen() },
                             onSeekFinished = { pos ->
                                 exoPlayer.seekTo(pos)
@@ -539,7 +545,10 @@ fun PlayScreen(
                             downloadSpeed = downloadSpeed,
                             onToggleFavorite = { viewModel.toggleFavorite() },
                             onSelectLine = { viewModel.selectLine(it) },
-                            onPlayEpisode = { viewModel.playEpisode(it) },
+                            onPlayEpisode = { episode ->
+                                switchingEpisode = true
+                                viewModel.playEpisode(episode)
+                            },
                             onToggleFullscreen = { viewModel.toggleFullscreen() },
                             onSeekFinished = { pos ->
                                 exoPlayer.seekTo(pos)
