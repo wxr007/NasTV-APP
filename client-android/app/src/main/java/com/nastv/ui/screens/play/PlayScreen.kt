@@ -222,14 +222,23 @@ fun PlayScreen(
 
                         val exoPlayerRef = remember { mutableStateOf<ExoPlayer?>(null) }
                         val exoPlayer = remember(bufferMaxDuration) {
+                            val oldPlayer = exoPlayerRef.value
+                            // 保存旧播放器的播放状态和位置
+                            val savedPosition = oldPlayer?.currentPosition ?: 0L
+                            val savedIsPlaying = oldPlayer?.isPlaying ?: true
                             // 释放旧的 ExoPlayer，防止两个播放器同时播放
-                            exoPlayerRef.value?.release()
+                            oldPlayer?.release()
                             val player = ExoPlayer.Builder(context)
                                 .setMediaSourceFactory(mediaSourceFactory)
                                 .setBandwidthMeter(bandwidthMeter)
                                 .setLoadControl(loadControl)
                                 .build()
-                            player.playWhenReady = isPlaying
+                            // 首次进入自动播放，重建时保持之前的播放/暂停状态
+                            player.playWhenReady = if (oldPlayer == null) true else savedIsPlaying
+                            // 重建时恢复播放位置
+                            if (savedPosition > 0) {
+                                player.seekTo(savedPosition)
+                            }
                             player.addListener(object : Player.Listener {
                                 override fun onIsPlayingChanged(playing: Boolean) {
                                     android.util.Log.d("ExoPlayer", "onIsPlayingChanged: $playing")
