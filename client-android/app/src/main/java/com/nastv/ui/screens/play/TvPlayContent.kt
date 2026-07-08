@@ -3,6 +3,7 @@ package com.nastv.ui.screens.play
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -170,6 +171,7 @@ fun TvPlayContent(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF1A1A1A))
+            .focusable()
             .onPreviewKeyEvent { event ->
                 if (event.type == KeyEventType.KeyDown) {
                     when (event.key) {

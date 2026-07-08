@@ -43,6 +43,7 @@ import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.ui.PlayerView
+import com.nastv.MainActivity
 import com.nastv.ui.theme.LocalIsTv
 import kotlinx.coroutines.delay
 
@@ -117,6 +118,16 @@ fun PlayScreen(
         activity?.window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         onDispose {
             activity?.window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
+
+    // 设置菜单键回调
+    DisposableEffect(activity) {
+        (activity as? MainActivity)?.onMenuKeyPressed = {
+            controlsVisible = !controlsVisible
+        }
+        onDispose {
+            (activity as? MainActivity)?.onMenuKeyPressed = null
         }
     }
 
