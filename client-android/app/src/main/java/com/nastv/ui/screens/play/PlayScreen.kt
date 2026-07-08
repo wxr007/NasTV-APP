@@ -220,35 +220,39 @@ fun PlayScreen(
                             )
                             .build()
 
+                        val exoPlayerRef = remember { mutableStateOf<ExoPlayer?>(null) }
                         val exoPlayer = remember(bufferMaxDuration) {
-                            ExoPlayer.Builder(context)
+                            // 释放旧的 ExoPlayer，防止两个播放器同时播放
+                            exoPlayerRef.value?.release()
+                            val player = ExoPlayer.Builder(context)
                                 .setMediaSourceFactory(mediaSourceFactory)
                                 .setBandwidthMeter(bandwidthMeter)
                                 .setLoadControl(loadControl)
-                                .build().apply {
-                                playWhenReady = true
-                                addListener(object : Player.Listener {
-                                    override fun onIsPlayingChanged(playing: Boolean) {
-                                        android.util.Log.d("ExoPlayer", "onIsPlayingChanged: $playing")
-                                        isPlaying = playing
+                                .build()
+                            player.playWhenReady = isPlaying
+                            player.addListener(object : Player.Listener {
+                                override fun onIsPlayingChanged(playing: Boolean) {
+                                    android.util.Log.d("ExoPlayer", "onIsPlayingChanged: $playing")
+                                    isPlaying = playing
+                                }
+                                override fun onPlaybackStateChanged(state: Int) {
+                                    val stateStr = when (state) {
+                                        Player.STATE_IDLE -> "IDLE"
+                                        Player.STATE_BUFFERING -> "BUFFERING"
+                                        Player.STATE_READY -> "READY"
+                                        Player.STATE_ENDED -> "ENDED"
+                                        else -> "UNKNOWN"
                                     }
-                                    override fun onPlaybackStateChanged(state: Int) {
-                                        val stateStr = when (state) {
-                                            Player.STATE_IDLE -> "IDLE"
-                                            Player.STATE_BUFFERING -> "BUFFERING"
-                                            Player.STATE_READY -> "READY"
-                                            Player.STATE_ENDED -> "ENDED"
-                                            else -> "UNKNOWN"
-                                        }
-                                        android.util.Log.d("ExoPlayer", "onPlaybackStateChanged: $stateStr, duration=$duration")
-                                        if (state == Player.STATE_READY) totalDuration = duration
-                                        isBuffering = state == Player.STATE_BUFFERING
-                                    }
-                                    override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
-                                        android.util.Log.e("ExoPlayer", "onPlayerError: ${error.errorCodeName}, ${error.message}", error)
-                                    }
-                                })
-                            }
+                                    android.util.Log.d("ExoPlayer", "onPlaybackStateChanged: $stateStr, duration=${player.duration}")
+                                    if (state == Player.STATE_READY) totalDuration = player.duration
+                                    isBuffering = state == Player.STATE_BUFFERING
+                                }
+                                override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                                    android.util.Log.e("ExoPlayer", "onPlayerError: ${error.errorCodeName}, ${error.message}", error)
+                                }
+                            })
+                            exoPlayerRef.value = player
+                            player
                         }
 
                         LaunchedEffect(exoPlayer, bandwidthMeter) {
