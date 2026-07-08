@@ -225,7 +225,7 @@ fun PlayScreen(
                                 delay(500)
                                 val isPlaying = exoPlayer.isPlaying
                                 val bitrateEstimate = bandwidthMeter.bitrateEstimate
-                                val meterSpeed = if (isPlaying && bitrateEstimate > 0 && bitrateEstimate < Long.MAX_VALUE) {
+                                val meterSpeed = if (bitrateEstimate > 0 && bitrateEstimate < Long.MAX_VALUE) {
                                     bitrateEstimate / 8
                                 } else {
                                     0L
