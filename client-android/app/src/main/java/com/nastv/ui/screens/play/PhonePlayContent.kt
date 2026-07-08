@@ -24,10 +24,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import android.widget.Toast
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.nastv.data.model.VideoDetail
@@ -197,6 +201,8 @@ fun PhonePlayContent(
             item {
                 Column(modifier = Modifier.padding(16.dp)) {
                     // Title row with favorite button
+                    val clipboardManager = LocalClipboardManager.current
+                    val context = LocalContext.current
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -205,7 +211,12 @@ fun PhonePlayContent(
                         Text(
                             text = detail.name,
                             style = MaterialTheme.typography.headlineMedium,
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier
+                                .weight(1f)
+                                .clickable {
+                                    clipboardManager.setText(AnnotatedString(detail.name))
+                                    Toast.makeText(context, "已复制标题", Toast.LENGTH_SHORT).show()
+                                }
                         )
                         IconButton(onClick = { onToggleFavorite() }) {
                             Icon(
