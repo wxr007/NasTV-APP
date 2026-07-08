@@ -127,7 +127,7 @@ fun TvPlayContent(
 
     // 共享的播放器内容（只有一个 PlayerView，在普通/最大化模式间移动）
     val playerContent = remember {
-        movableContentOf {
+        movableContentOf { exoPlayer: ExoPlayer ->
             Box(modifier = Modifier.fillMaxSize()) {
                 AndroidView(
                     factory = { ctx ->
@@ -211,7 +211,7 @@ fun TvPlayContent(
                         } else false
                     }
             ) {
-                playerContent()
+                playerContent(exoPlayer)
 
                 // 右上角始终显示下载速度
                 Box(
@@ -375,7 +375,7 @@ fun TvPlayContent(
                             .onFocusChanged { isPlayerFocused = it.isFocused }
                             .clickable { isPlayerMaximized = true }
                     ) {
-                        playerContent()
+                        playerContent(exoPlayer)
 
                         // 右上角始终显示下载速度
                         Box(
