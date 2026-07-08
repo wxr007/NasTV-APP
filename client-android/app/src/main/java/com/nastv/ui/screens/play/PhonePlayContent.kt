@@ -169,6 +169,7 @@ fun PhonePlayContent(
                             onSeekStart()
                             onSeekFinished((seekPosition * totalDuration).toLong())
                         },
+                        valueRange = 0f..1f,
                         modifier = Modifier.fillMaxWidth(),
                         colors = SliderDefaults.colors(
                             thumbColor = Color.White,

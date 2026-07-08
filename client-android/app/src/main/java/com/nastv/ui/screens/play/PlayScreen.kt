@@ -495,7 +495,10 @@ fun PlayScreen(
                                 currentPosition = pos
                                 isSeeking = false
                             },
-                            onSeekChange = { seekPosition = it },
+                            onSeekChange = { 
+                                seekPosition = it
+                                isSeeking = true
+                            },
                             onSeekStart = { isSeeking = true },
                             onPlayPause = {
                                 if (isPlaying) exoPlayer.pause() else exoPlayer.play()
