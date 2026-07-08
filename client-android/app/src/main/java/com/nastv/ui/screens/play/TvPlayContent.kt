@@ -59,6 +59,7 @@ fun TvPlayContent(
     controlsVisible: Boolean,
     isPlaying: Boolean,
     currentPosition: Long,
+    bufferedPosition: Long,
     totalDuration: Long,
     isSeeking: Boolean,
     seekPosition: Float,
@@ -77,6 +78,7 @@ fun TvPlayContent(
     onSeekChange: (Float) -> Unit,
     onSeekStart: () -> Unit,
     onPlayPause: () -> Unit,
+    onToggleControls: () -> Unit,
     seekDuration: Int = 10,
 ) {
     var sortAscending by remember { mutableStateOf(true) }
@@ -169,9 +171,21 @@ fun TvPlayContent(
             .fillMaxSize()
             .background(Color(0xFF1A1A1A))
             .onPreviewKeyEvent { event ->
-                if (event.type == KeyEventType.KeyDown && event.key == Key.Back && isPlayerMaximized) {
-                    isPlayerMaximized = false
-                    true
+                if (event.type == KeyEventType.KeyDown) {
+                    when (event.key) {
+                        Key.Back -> {
+                            if (isPlayerMaximized) {
+                                isPlayerMaximized = false
+                                true
+                            } else false
+                        }
+                        Key.Menu -> {
+                            // 菜单键切换控制栏显示
+                            onToggleControls()
+                            true
+                        }
+                        else -> false
+                    }
                 } else false
             }
     ) {
@@ -257,10 +271,11 @@ fun TvPlayContent(
                             .fillMaxWidth()
                             .padding(horizontal = 24.dp, vertical = 16.dp)
                     ) {
-                        Slider(
+                        VideoSeekBar(
                             value = if (isSeeking) seekPosition
                                 else if (totalDuration > 0) currentPosition.toFloat() / totalDuration.toFloat()
                                 else 0f,
+                            bufferedValue = if (totalDuration > 0) bufferedPosition.toFloat() / totalDuration.toFloat() else 0f,
                             onValueChange = onSeekChange,
                             onValueChangeFinished = {
                                 onSeekStart()
@@ -269,11 +284,10 @@ fun TvPlayContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .focusProperties { canFocus = false },
-                            colors = SliderDefaults.colors(
-                                thumbColor = Color.White,
-                                activeTrackColor = Color.White,
-                                inactiveTrackColor = Color.White.copy(alpha = 0.3f)
-                            )
+                            playedColor = Color.White,
+                            bufferedColor = Color(0xFF4CAF50),
+                            unplayedColor = Color.White.copy(alpha = 0.3f),
+                            thumbColor = Color.White
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -390,10 +404,11 @@ fun TvPlayContent(
                                     .fillMaxWidth()
                                     .padding(horizontal = 24.dp, vertical = 16.dp)
                             ) {
-                                Slider(
+                                VideoSeekBar(
                                     value = if (isSeeking) seekPosition
                                         else if (totalDuration > 0) currentPosition.toFloat() / totalDuration.toFloat()
                                         else 0f,
+                                    bufferedValue = if (totalDuration > 0) bufferedPosition.toFloat() / totalDuration.toFloat() else 0f,
                                     onValueChange = onSeekChange,
                                     onValueChangeFinished = {
                                         onSeekStart()
@@ -402,11 +417,10 @@ fun TvPlayContent(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .focusProperties { canFocus = false },
-                                    colors = SliderDefaults.colors(
-                                        thumbColor = Color.White,
-                                        activeTrackColor = Color.White,
-                                        inactiveTrackColor = Color.White.copy(alpha = 0.3f)
-                                    )
+                                    playedColor = Color.White,
+                                    bufferedColor = Color(0xFF4CAF50),
+                                    unplayedColor = Color.White.copy(alpha = 0.3f),
+                                    thumbColor = Color.White
                                 )
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),

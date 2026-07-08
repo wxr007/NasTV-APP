@@ -3,7 +3,10 @@ package com.nastv.ui.screens.play
 import android.content.pm.ActivityInfo
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -14,7 +17,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
@@ -64,6 +71,7 @@ fun PlayScreen(
     // Player state for custom controls
     var isPlaying by remember { mutableStateOf(false) }
     var currentPosition by remember { mutableStateOf(0L) }
+    var bufferedPosition by remember { mutableStateOf(0L) }
     var totalDuration by remember { mutableStateOf(0L) }
     var controlsVisible by remember { mutableStateOf(true) }
     var isSeeking by remember { mutableStateOf(false) }
@@ -240,6 +248,7 @@ fun PlayScreen(
                         while (true) {
                             if (!isSeeking) {
                                 currentPosition = exoPlayer.currentPosition
+                                bufferedPosition = exoPlayer.bufferedPosition
                                 totalDuration = exoPlayer.duration.coerceAtLeast(0)
                             }
                             delay(500)
@@ -397,22 +406,21 @@ fun PlayScreen(
                                         .fillMaxWidth()
                                         .padding(horizontal = 24.dp, vertical = 32.dp)
                                 ) {
-                                    Slider(
+                                    VideoSeekBar(
                                         value = if (isSeeking) seekPosition
                                             else if (totalDuration > 0) currentPosition.toFloat() / totalDuration.toFloat() else 0f,
+                                        bufferedValue = if (totalDuration > 0) bufferedPosition.toFloat() / totalDuration.toFloat() else 0f,
                                         onValueChange = { seekPosition = it; isSeeking = true },
                                         onValueChangeFinished = {
                                             exoPlayer.seekTo((seekPosition * totalDuration).toLong())
                                             currentPosition = (seekPosition * totalDuration).toLong()
                                             isSeeking = false
                                         },
-                                        valueRange = 0f..1f,
                                         modifier = Modifier.fillMaxWidth(),
-                                        colors = SliderDefaults.colors(
-                                            thumbColor = Color.White,
-                                            activeTrackColor = Color.White,
-                                            inactiveTrackColor = Color.White.copy(alpha = 0.3f)
-                                        )
+                                        playedColor = Color.White,
+                                        bufferedColor = Color(0xFF4CAF50),
+                                        unplayedColor = Color.White.copy(alpha = 0.3f),
+                                        thumbColor = Color.White
                                     )
                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                         Text(text = formatTime(currentPosition), style = MaterialTheme.typography.labelMedium, color = Color.White)
@@ -431,6 +439,7 @@ fun PlayScreen(
                             controlsVisible = controlsVisible,
                             isPlaying = isPlaying,
                             currentPosition = currentPosition,
+                            bufferedPosition = bufferedPosition,
                             totalDuration = totalDuration,
                             isSeeking = isSeeking,
                             seekPosition = seekPosition,
@@ -455,6 +464,7 @@ fun PlayScreen(
                             onPlayPause = {
                                 if (isPlaying) exoPlayer.pause() else exoPlayer.play()
                             },
+                            onToggleControls = { controlsVisible = !controlsVisible },
                             seekDuration = seekDuration,
                         )
                     } else {
@@ -467,6 +477,7 @@ fun PlayScreen(
                             controlsVisible = controlsVisible,
                             isPlaying = isPlaying,
                             currentPosition = currentPosition,
+                            bufferedPosition = bufferedPosition,
                             totalDuration = totalDuration,
                             isSeeking = isSeeking,
                             seekPosition = seekPosition,

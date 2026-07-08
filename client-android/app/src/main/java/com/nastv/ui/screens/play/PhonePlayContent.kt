@@ -48,6 +48,7 @@ fun PhonePlayContent(
     controlsVisible: Boolean,
     isPlaying: Boolean,
     currentPosition: Long,
+    bufferedPosition: Long,
     totalDuration: Long,
     isSeeking: Boolean,
     seekPosition: Float,
@@ -164,22 +165,21 @@ fun PhonePlayContent(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 12.dp)
                 ) {
-                    Slider(
+                    VideoSeekBar(
                         value = if (isSeeking) seekPosition
                             else if (totalDuration > 0) currentPosition.toFloat() / totalDuration.toFloat()
                             else 0f,
+                        bufferedValue = if (totalDuration > 0) bufferedPosition.toFloat() / totalDuration.toFloat() else 0f,
                         onValueChange = onSeekChange,
                         onValueChangeFinished = {
                             onSeekStart()
                             onSeekFinished((seekPosition * totalDuration).toLong())
                         },
-                        valueRange = 0f..1f,
                         modifier = Modifier.fillMaxWidth(),
-                        colors = SliderDefaults.colors(
-                            thumbColor = Color.White,
-                            activeTrackColor = Color.White,
-                            inactiveTrackColor = Color.White.copy(alpha = 0.3f)
-                        )
+                        playedColor = Color.White,
+                        bufferedColor = Color(0xFF4CAF50),
+                        unplayedColor = Color.White.copy(alpha = 0.3f),
+                        thumbColor = Color.White
                     )
 
                     Row(
