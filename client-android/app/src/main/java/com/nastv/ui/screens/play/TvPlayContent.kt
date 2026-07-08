@@ -98,9 +98,23 @@ fun TvPlayContent(
 
     val maximizedFocusRequester = remember { FocusRequester() }
     val episodeRangeFocusRequester = remember { FocusRequester() }
+    val descFocusRequester = remember { FocusRequester() }
+    val settingsFocusRequester = remember { FocusRequester() }
     LaunchedEffect(isPlayerMaximized) {
         if (isPlayerMaximized) {
             maximizedFocusRequester.requestFocus()
+        }
+    }
+    // 关闭简介弹窗后聚焦到简介按钮
+    LaunchedEffect(showDescriptionDialog) {
+        if (!showDescriptionDialog) {
+            descFocusRequester.requestFocus()
+        }
+    }
+    // 关闭设置抽屉后聚焦到设置按钮
+    LaunchedEffect(showSettingsDrawer) {
+        if (!showSettingsDrawer) {
+            settingsFocusRequester.requestFocus()
         }
     }
 
@@ -506,6 +520,7 @@ fun TvPlayContent(
                                 Box(
                                     modifier = Modifier
                                         .tvFocusable()
+                                        .focusRequester(descFocusRequester)
                                         .onFocusChanged { isDescFocused = it.isFocused }
                                         .clickable { showDescriptionDialog = true }
                                         .background(Color(0xFF2A2A2A), RoundedCornerShape(8.dp))
@@ -531,6 +546,7 @@ fun TvPlayContent(
                             Box(
                                 modifier = Modifier
                                     .tvFocusable()
+                                    .focusRequester(settingsFocusRequester)
                                     .onFocusChanged { isSettingsFocused = it.isFocused }
                                     .clickable { showSettingsDrawer = true }
                                     .background(Color(0xFF2A2A2A), RoundedCornerShape(8.dp))
