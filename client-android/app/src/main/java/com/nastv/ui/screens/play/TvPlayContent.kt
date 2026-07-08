@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -71,6 +72,8 @@ fun TvPlayContent(
     cachedEpisodeIndices: Set<Int>,
     isBuffering: Boolean,
     downloadSpeed: Long,
+    bufferMinDuration: Int,
+    bufferMaxDuration: Int,
     onToggleFavorite: () -> Unit,
     onSelectLine: (Int) -> Unit,
     onPlayEpisode: (com.nastv.data.model.Episode) -> Unit,
@@ -80,6 +83,7 @@ fun TvPlayContent(
     onSeekStart: () -> Unit,
     onPlayPause: () -> Unit,
     onToggleControls: () -> Unit,
+    onUpdateBufferSettings: (Int, Int) -> Unit,
     seekDuration: Int = 10,
 ) {
     var sortAscending by remember { mutableStateOf(true) }
@@ -87,6 +91,9 @@ fun TvPlayContent(
     var isPlayerFocused by remember { mutableStateOf(false) }
     var showDescriptionDialog by remember { mutableStateOf(false) }
     var isEpisodeFocused by remember { mutableStateOf(false) }
+    var showSettingsDrawer by remember { mutableStateOf(false) }
+    var tempBufferMin by remember { mutableStateOf(bufferMinDuration) }
+    var tempBufferMax by remember { mutableStateOf(bufferMaxDuration) }
 
     val maximizedFocusRequester = remember { FocusRequester() }
     val episodeRangeFocusRequester = remember { FocusRequester() }
@@ -513,6 +520,30 @@ fun TvPlayContent(
                                     }
                                 }
                             }
+
+                            // 设置按钮
+                            var isSettingsFocused by remember { mutableStateOf(false) }
+                            val settingsBorderColor = if (isSettingsFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                            Box(
+                                modifier = Modifier
+                                    .tvFocusable()
+                                    .onFocusChanged { isSettingsFocused = it.isFocused }
+                                    .clickable { showSettingsDrawer = true }
+                                    .background(Color(0xFF2A2A2A), RoundedCornerShape(8.dp))
+                                    .border(2.dp, settingsBorderColor, RoundedCornerShape(8.dp))
+                                    .padding(8.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = Icons.Default.Settings,
+                                        contentDescription = "设置",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(text = "设置", style = MaterialTheme.typography.bodyLarge, color = Color.White)
+                                }
+                            }
                         }
                     }
                 }
@@ -798,6 +829,164 @@ fun TvPlayContent(
                                     }
                             ) {
                                 Text("关闭")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 设置抽屉 - 从右侧滑出
+        if (showSettingsDrawer) {
+            val settingsCloseFocusRequester = remember { FocusRequester() }
+            LaunchedEffect(Unit) { settingsCloseFocusRequester.requestFocus() }
+
+            // 拦截返回键
+            androidx.activity.compose.BackHandler(enabled = showSettingsDrawer) {
+                showSettingsDrawer = false
+            }
+
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onPreviewKeyEvent { event ->
+                        if (event.type == KeyEventType.KeyDown && event.key == Key.Back) {
+                            showSettingsDrawer = false
+                            true
+                        } else false
+                    }
+            ) {
+                // 半透明遮罩
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .clickable { showSettingsDrawer = false }
+                )
+
+                // 右侧抽屉内容
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .fillMaxHeight()
+                        .width(400.dp)
+                        .border(2.dp, Color(0xFFFFD700), RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp)),
+                    shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    tonalElevation = 8.dp
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(24.dp)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        // 标题
+                        Text(
+                            text = "播放设置",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // 缓冲设置
+                        Text(
+                            text = "缓冲配置",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // 最小缓冲时长
+                        Text(
+                            text = "最小缓冲: ${tempBufferMin}秒",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Slider(
+                            value = tempBufferMin.toFloat(),
+                            onValueChange = { tempBufferMin = it.toInt() },
+                            valueRange = 10f..120f,
+                            steps = 21,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = SliderDefaults.colors(
+                                thumbColor = Color(0xFFFFD700),
+                                activeTrackColor = Color(0xFFFFD700),
+                                inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // 最大缓冲时长
+                        Text(
+                            text = "最大缓冲: ${tempBufferMax}秒",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Slider(
+                            value = tempBufferMax.toFloat(),
+                            onValueChange = { tempBufferMax = it.toInt() },
+                            valueRange = 50f..300f,
+                            steps = 24,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = SliderDefaults.colors(
+                                thumbColor = Color(0xFFFFD700),
+                                activeTrackColor = Color(0xFFFFD700),
+                                inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                            )
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = "提示: 缓冲越大播放越流畅，但占用内存越多",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.6f)
+                        )
+                        Spacer(modifier = Modifier.height(32.dp))
+
+                        // 按钮行
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            // 取消按钮
+                            var isCancelFocused by remember { mutableStateOf(false) }
+                            val cancelBorderColor = if (isCancelFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .tvFocusable()
+                                    .onFocusChanged { isCancelFocused = it.isFocused }
+                                    .clickable { showSettingsDrawer = false }
+                                    .background(Color(0xFF333333), RoundedCornerShape(8.dp))
+                                    .border(2.dp, cancelBorderColor, RoundedCornerShape(8.dp))
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("取消", color = Color.White)
+                            }
+
+                            // 保存按钮
+                            var isSaveFocused by remember { mutableStateOf(false) }
+                            val saveBorderColor = if (isSaveFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .focusRequester(settingsCloseFocusRequester)
+                                    .tvFocusable()
+                                    .onFocusChanged { isSaveFocused = it.isFocused }
+                                    .clickable {
+                                        onUpdateBufferSettings(tempBufferMin, tempBufferMax)
+                                        showSettingsDrawer = false
+                                    }
+                                    .background(Color(0xFF4CAF50), RoundedCornerShape(8.dp))
+                                    .border(2.dp, saveBorderColor, RoundedCornerShape(8.dp))
+                                    .padding(vertical = 12.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text("保存", color = Color.White)
                             }
                         }
                     }

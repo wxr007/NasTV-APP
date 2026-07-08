@@ -13,6 +13,8 @@ object Constants {
     const val PREF_FORCE_TV_MODE = "force_tv_mode"
     const val PREF_THEME_MODE = "theme_mode" // "system", "dark", "light"
     const val PREF_USER_ROLE = "user_role"
+    const val PREF_BUFFER_MIN_DURATION = "buffer_min_duration"
+    const val PREF_BUFFER_MAX_DURATION = "buffer_max_duration"
 
     // Default server URL (placeholder, replaced by interceptor at runtime)
     const val DEFAULT_BASE_URL = "http://placeholder/"
@@ -21,6 +23,10 @@ object Constants {
     const val CONNECT_TIMEOUT = 30L
     const val READ_TIMEOUT = 30L
     const val WRITE_TIMEOUT = 30L
+
+    // Buffer settings (seconds)
+    const val DEFAULT_BUFFER_MIN_DURATION = 50
+    const val DEFAULT_BUFFER_MAX_DURATION = 100
 
     // Pagination
     const val DEFAULT_PAGE_SIZE = 20

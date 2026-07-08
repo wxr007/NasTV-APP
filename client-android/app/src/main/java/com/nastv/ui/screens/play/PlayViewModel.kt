@@ -56,12 +56,20 @@ class PlayViewModel @Inject constructor(
     private val _seekDuration = MutableStateFlow(10)
     val seekDuration: StateFlow<Int> = _seekDuration.asStateFlow()
 
+    private val _bufferMinDuration = MutableStateFlow(50)
+    val bufferMinDuration: StateFlow<Int> = _bufferMinDuration.asStateFlow()
+
+    private val _bufferMaxDuration = MutableStateFlow(100)
+    val bufferMaxDuration: StateFlow<Int> = _bufferMaxDuration.asStateFlow()
+
     private val _cachedEpisodeIndices = MutableStateFlow<Set<Int>>(emptySet())
     val cachedEpisodeIndices: StateFlow<Set<Int>> = _cachedEpisodeIndices.asStateFlow()
 
     init {
         viewModelScope.launch {
             _seekDuration.value = preferencesRepository.seekDurationFlow.first()
+            _bufferMinDuration.value = preferencesRepository.bufferMinDurationFlow.first()
+            _bufferMaxDuration.value = preferencesRepository.bufferMaxDurationFlow.first()
         }
     }
 
@@ -232,6 +240,15 @@ class PlayViewModel @Inject constructor(
 
     fun toggleFullscreen() {
         _isFullscreen.value = !_isFullscreen.value
+    }
+
+    fun updateBufferSettings(minDuration: Int, maxDuration: Int) {
+        _bufferMinDuration.value = minDuration
+        _bufferMaxDuration.value = maxDuration
+        viewModelScope.launch {
+            preferencesRepository.saveBufferMinDuration(minDuration)
+            preferencesRepository.saveBufferMaxDuration(maxDuration)
+        }
     }
 
     fun recordPlayHistory(

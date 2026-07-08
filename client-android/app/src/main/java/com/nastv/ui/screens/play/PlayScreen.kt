@@ -35,6 +35,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.exoplayer.DefaultLoadControl
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.upstream.DefaultBandwidthMeter
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -68,6 +69,8 @@ fun PlayScreen(
     val restorePosition by viewModel.restorePosition.collectAsState()
     val seekDuration by viewModel.seekDuration.collectAsState()
     val cachedEpisodeIndices by viewModel.cachedEpisodeIndices.collectAsState()
+    val bufferMinDuration by viewModel.bufferMinDuration.collectAsState()
+    val bufferMaxDuration by viewModel.bufferMaxDuration.collectAsState()
 
     // Player state for custom controls
     var isPlaying by remember { mutableStateOf(false) }
@@ -209,10 +212,20 @@ fun PlayScreen(
 
                         val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
 
-                        val exoPlayer = remember {
+                        val loadControl = DefaultLoadControl.Builder()
+                            .setBufferDurationsMs(
+                                bufferMinDuration * 1000,  // minBuffer
+                                bufferMaxDuration * 1000,  // maxBuffer
+                                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
+                                DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
+                            )
+                            .build()
+
+                        val exoPlayer = remember(bufferMinDuration, bufferMaxDuration) {
                             ExoPlayer.Builder(context)
                                 .setMediaSourceFactory(mediaSourceFactory)
                                 .setBandwidthMeter(bandwidthMeter)
+                                .setLoadControl(loadControl)
                                 .build().apply {
                                 playWhenReady = true
                                 addListener(object : Player.Listener {
@@ -461,6 +474,8 @@ fun PlayScreen(
                             cachedEpisodeIndices = cachedEpisodeIndices,
                             isBuffering = isBuffering,
                             downloadSpeed = downloadSpeed,
+                            bufferMinDuration = bufferMinDuration,
+                            bufferMaxDuration = bufferMaxDuration,
                             onToggleFavorite = { viewModel.toggleFavorite() },
                             onSelectLine = { viewModel.selectLine(it) },
                             onPlayEpisode = { viewModel.playEpisode(it) },
@@ -476,6 +491,7 @@ fun PlayScreen(
                                 if (isPlaying) exoPlayer.pause() else exoPlayer.play()
                             },
                             onToggleControls = { controlsVisible = !controlsVisible },
+                            onUpdateBufferSettings = { min, max -> viewModel.updateBufferSettings(min, max) },
                             seekDuration = seekDuration,
                         )
                     } else {
