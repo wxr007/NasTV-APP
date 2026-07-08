@@ -171,25 +171,6 @@ fun TvPlayContent(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF1A1A1A))
-            .focusable()
-            .onPreviewKeyEvent { event ->
-                if (event.type == KeyEventType.KeyDown) {
-                    when (event.key) {
-                        Key.Back -> {
-                            if (isPlayerMaximized) {
-                                isPlayerMaximized = false
-                                true
-                            } else false
-                        }
-                        Key.Menu -> {
-                            // 菜单键切换控制栏显示
-                            onToggleControls()
-                            true
-                        }
-                        else -> false
-                    }
-                } else false
-            }
     ) {
         if (isPlayerMaximized) {
             // 最大化模式：全屏播放器 + 控制层
