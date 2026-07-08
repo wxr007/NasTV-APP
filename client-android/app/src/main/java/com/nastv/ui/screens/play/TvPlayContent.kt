@@ -1,5 +1,6 @@
 package com.nastv.ui.screens.play
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -26,6 +27,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.focus.FocusDirection
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
@@ -52,6 +54,7 @@ import com.nastv.data.model.VideoDetail
 /**
  * TV 端播放页布局（横屏，遥控器/键盘导航）
  */
+@OptIn(ExperimentalComposeUiApi::class)
 @Composable
 fun TvPlayContent(
     detail: VideoDetail,
@@ -839,7 +842,16 @@ fun TvPlayContent(
         // 设置抽屉 - 从右侧滑出
         if (showSettingsDrawer) {
             val settingsCloseFocusRequester = remember { FocusRequester() }
+            val settingsScrollState = rememberScrollState()
+            var settingsScrollDelta by remember { mutableStateOf(0) }
             LaunchedEffect(Unit) { settingsCloseFocusRequester.requestFocus() }
+            LaunchedEffect(settingsScrollDelta) {
+                if (settingsScrollDelta != 0) {
+                    val target = (settingsScrollState.value + settingsScrollDelta).coerceIn(0, settingsScrollState.maxValue)
+                    settingsScrollState.animateScrollTo(target)
+                    settingsScrollDelta = 0
+                }
+            }
 
             // 拦截返回键
             androidx.activity.compose.BackHandler(enabled = showSettingsDrawer) {
@@ -849,10 +861,28 @@ fun TvPlayContent(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .focusable()
+                    .focusProperties {
+                        // 限制焦点只能在抽屉内部移动
+                        exit = { FocusRequester.Cancel }
+                    }
                     .onPreviewKeyEvent { event ->
-                        if (event.type == KeyEventType.KeyDown && event.key == Key.Back) {
-                            showSettingsDrawer = false
-                            true
+                        if (event.type == KeyEventType.KeyDown) {
+                            when (event.key) {
+                                Key.Back -> {
+                                    showSettingsDrawer = false
+                                    true
+                                }
+                                Key.DirectionUp -> {
+                                    settingsScrollDelta = -80
+                                    true
+                                }
+                                Key.DirectionDown -> {
+                                    settingsScrollDelta = 80
+                                    true
+                                }
+                                else -> false
+                            }
                         } else false
                     }
             ) {
@@ -879,7 +909,7 @@ fun TvPlayContent(
                         modifier = Modifier
                             .fillMaxSize()
                             .padding(24.dp)
-                            .verticalScroll(rememberScrollState())
+                            .verticalScroll(settingsScrollState)
                     ) {
                         // 标题
                         Text(
@@ -909,7 +939,9 @@ fun TvPlayContent(
                             onValueChange = { tempBufferMin = it.toInt() },
                             valueRange = 10f..120f,
                             steps = 21,
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusable(),
                             colors = SliderDefaults.colors(
                                 thumbColor = Color(0xFFFFD700),
                                 activeTrackColor = Color(0xFFFFD700),
@@ -930,7 +962,9 @@ fun TvPlayContent(
                             onValueChange = { tempBufferMax = it.toInt() },
                             valueRange = 50f..300f,
                             steps = 24,
-                            modifier = Modifier.fillMaxWidth(),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusable(),
                             colors = SliderDefaults.colors(
                                 thumbColor = Color(0xFFFFD700),
                                 activeTrackColor = Color(0xFFFFD700),
