@@ -295,12 +295,13 @@ fun PlayScreen(
 
                     LaunchedEffect(playUrl, exoPlayer) {
                         playUrl?.let { url ->
+                            // 在 setMediaItem 之前保存当前播放位置
+                            val positionBeforeSwitch = exoPlayer.currentPosition
                             val mediaItem = MediaItem.fromUri(url)
                             exoPlayer.setMediaItem(mediaItem)
                             exoPlayer.prepare()
                             if (!switchingEpisode) {
                                 // 优先使用切换前位置（切换线路），否则使用缓冲重建保存的位置
-                                val positionBeforeSwitch = exoPlayer.currentPosition
                                 val restorePos = if (positionBeforeSwitch > 0) positionBeforeSwitch else savedPositionForRestore
                                 if (restorePos > 0) {
                                     var attempts = 0
