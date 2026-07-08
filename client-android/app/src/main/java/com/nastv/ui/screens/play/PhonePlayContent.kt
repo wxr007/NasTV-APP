@@ -268,7 +268,9 @@ fun PhonePlayContent(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = if (detailExpanded) Int.MAX_VALUE else 2,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.padding(bottom = 16.dp)
+                            modifier = Modifier
+                                .padding(bottom = 16.dp)
+                                .clickable { detailExpanded = !detailExpanded }
                         )
                     }
 
@@ -325,13 +327,13 @@ fun PhonePlayContent(
                             Icon(
                                 imageVector = if (episodesExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                                 contentDescription = if (episodesExpanded) "收起" else "展开",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
                                 text = if (episodesExpanded) "收起" else "展开",
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.primary
                             )
                         }
                     }
