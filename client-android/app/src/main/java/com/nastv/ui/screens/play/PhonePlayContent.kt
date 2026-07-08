@@ -59,6 +59,7 @@ fun PhonePlayContent(
     cachedEpisodeIndices: Set<Int>,
     isBuffering: Boolean,
     downloadSpeed: Long,
+    sourceName: String?,
     onToggleFavorite: () -> Unit,
     onSelectLine: (Int) -> Unit,
     onPlayEpisode: (com.nastv.data.model.Episode) -> Unit,
@@ -242,7 +243,7 @@ fun PhonePlayContent(
                                 color = MaterialTheme.colorScheme.surfaceVariant
                             ) {
                                 Text(
-                                    text = detail.playFrom.getOrNull(selectedLine) ?: "",
+                                    text = sourceName ?: detail.sourceId,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                     style = MaterialTheme.typography.labelSmall
                                 )

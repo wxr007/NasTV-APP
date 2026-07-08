@@ -546,6 +546,7 @@ fun PlayScreen(
                             cachedEpisodeIndices = cachedEpisodeIndices,
                             isBuffering = isBuffering,
                             downloadSpeed = downloadSpeed,
+                            sourceName = sourceName,
                             onToggleFavorite = { viewModel.toggleFavorite() },
                             onSelectLine = { viewModel.selectLine(it) },
                             onPlayEpisode = { episode ->
