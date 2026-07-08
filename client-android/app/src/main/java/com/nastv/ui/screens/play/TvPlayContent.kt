@@ -83,8 +83,10 @@ fun TvPlayContent(
     var isPlayerMaximized by remember { mutableStateOf(false) }
     var isPlayerFocused by remember { mutableStateOf(false) }
     var showDescriptionDialog by remember { mutableStateOf(false) }
+    var isEpisodeFocused by remember { mutableStateOf(false) }
 
     val maximizedFocusRequester = remember { FocusRequester() }
+    val episodeRangeFocusRequester = remember { FocusRequester() }
     LaunchedEffect(isPlayerMaximized) {
         if (isPlayerMaximized) {
             maximizedFocusRequester.requestFocus()
@@ -565,7 +567,8 @@ fun TvPlayContent(
 
                     LazyRow(
                         horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.focusRequester(episodeRangeFocusRequester)
                     ) {
                         // 排序按钮
                         item {
@@ -634,7 +637,15 @@ fun TvPlayContent(
 
                     // 可滚动区域：剧集网格
                     Column(
-                        modifier = Modifier.weight(1f).verticalScroll(episodeScrollState)
+                        modifier = Modifier
+                            .weight(1f)
+                            .verticalScroll(episodeScrollState)
+                            .onPreviewKeyEvent { event ->
+                                if (event.type == KeyEventType.KeyDown && event.key == Key.Back && isEpisodeFocused) {
+                                    episodeRangeFocusRequester.requestFocus()
+                                    true
+                                } else false
+                            }
                     ) {
                         if (sortedEpisodes.isNotEmpty()) {
                             val episodeRows = (sortedEpisodes.size + episodeCols - 1) / episodeCols
@@ -659,7 +670,10 @@ fun TvPlayContent(
                                                     .weight(1f)
                                                     .height(48.dp)
                                                     .tvFocusable()
-                                                    .onFocusChanged { isFocused = it.isFocused }
+                                                    .onFocusChanged { 
+                                                        isFocused = it.isFocused
+                                                        isEpisodeFocused = it.isFocused
+                                                    }
                                                     .clickable { onPlayEpisode(episode) }
                                                     .background(epBgColor, RoundedCornerShape(8.dp))
                                                     .border(2.dp, epBorderColor, RoundedCornerShape(8.dp))
