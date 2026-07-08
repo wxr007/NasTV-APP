@@ -280,7 +280,7 @@ fun PlayScreen(
 
                     val playUrl = proxyUrl ?: currentEpisodeUrl
 
-                    LaunchedEffect(playUrl) {
+                    LaunchedEffect(playUrl, exoPlayer) {
                         playUrl?.let { url ->
                             val mediaItem = MediaItem.fromUri(url)
                             exoPlayer.setMediaItem(mediaItem)
@@ -290,7 +290,7 @@ fun PlayScreen(
 
                     // Restore play position from history
                     var positionRestored by remember { mutableStateOf(false) }
-                    LaunchedEffect(restorePosition) {
+                    LaunchedEffect(restorePosition, exoPlayer) {
                         restorePosition?.let { pos ->
                             if (!positionRestored) {
                                 var attempts = 0
