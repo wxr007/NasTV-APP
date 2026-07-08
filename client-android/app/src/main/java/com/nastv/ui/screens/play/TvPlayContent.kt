@@ -477,7 +477,7 @@ fun TvPlayContent(
                             Text(text = "导演：$it", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Spacer(modifier = Modifier.height(4.dp))
                         }
-                        Text(text = "站源：${detail.sourceId}", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(text = "站源：${detail.playFrom.getOrNull(selectedLine) ?: detail.sourceId}", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.7f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                         Spacer(modifier = Modifier.height(4.dp))
                         Spacer(modifier = Modifier.height(8.dp))
 
