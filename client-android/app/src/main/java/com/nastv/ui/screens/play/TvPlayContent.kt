@@ -859,6 +859,11 @@ fun TvPlayContent(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
+                    .focusable()
+                    .focusProperties {
+                        // 限制焦点只能在抽屉内部移动
+                        exit = { FocusRequester.Cancel }
+                    }
                     .onPreviewKeyEvent { event ->
                         if (event.type == KeyEventType.KeyDown && event.key == Key.Back) {
                             showSettingsDrawer = false
@@ -916,16 +921,11 @@ fun TvPlayContent(
                         Spacer(modifier = Modifier.height(8.dp))
                         var isSliderFocused by remember { mutableStateOf(false) }
                         val sliderFocusRequester = remember { FocusRequester() }
-                        val cancelFocusRequester = remember { FocusRequester() }
-                        val saveFocusRequester = remember { FocusRequester() }
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .focusable()
                                 .focusRequester(sliderFocusRequester)
-                                .focusProperties {
-                                    down = cancelFocusRequester
-                                }
+                                .focusProperties { canFocus = true }
                                 .onFocusChanged { isSliderFocused = it.isFocused }
                                 .onKeyEvent { event ->
                                     if (event.type == KeyEventType.KeyDown) {
@@ -987,9 +987,6 @@ fun TvPlayContent(
                                 modifier = Modifier
                                     .weight(1f)
                                     .tvFocusable()
-                                    .focusProperties {
-                                        up = sliderFocusRequester
-                                    }
                                     .onFocusChanged { isCancelFocused = it.isFocused }
                                     .clickable { showSettingsDrawer = false }
                                     .background(Color(0xFF333333), RoundedCornerShape(8.dp))
@@ -1008,9 +1005,6 @@ fun TvPlayContent(
                                     .weight(1f)
                                     .focusRequester(settingsCloseFocusRequester)
                                     .tvFocusable()
-                                    .focusProperties {
-                                        up = sliderFocusRequester
-                                    }
                                     .onFocusChanged { isSaveFocused = it.isFocused }
                                     .clickable {
                                         onUpdateBufferSettings(tempBufferMax)
