@@ -75,7 +75,6 @@ fun TvPlayContent(
     cachedEpisodeIndices: Set<Int>,
     isBuffering: Boolean,
     downloadSpeed: Long,
-    bufferMinDuration: Int,
     bufferMaxDuration: Int,
     onToggleFavorite: () -> Unit,
     onSelectLine: (Int) -> Unit,
@@ -86,7 +85,7 @@ fun TvPlayContent(
     onSeekStart: () -> Unit,
     onPlayPause: () -> Unit,
     onToggleControls: () -> Unit,
-    onUpdateBufferSettings: (Int, Int) -> Unit,
+    onUpdateBufferSettings: (Int) -> Unit,
     seekDuration: Int = 10,
 ) {
     var sortAscending by remember { mutableStateOf(true) }
@@ -95,7 +94,6 @@ fun TvPlayContent(
     var showDescriptionDialog by remember { mutableStateOf(false) }
     var isEpisodeFocused by remember { mutableStateOf(false) }
     var showSettingsDrawer by remember { mutableStateOf(false) }
-    var tempBufferMin by remember { mutableStateOf(bufferMinDuration) }
     var tempBufferMax by remember { mutableStateOf(bufferMaxDuration) }
 
     val maximizedFocusRequester = remember { FocusRequester() }
@@ -927,29 +925,6 @@ fun TvPlayContent(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // 最小缓冲时长
-                        Text(
-                            text = "最小缓冲: ${tempBufferMin}秒",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.White
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Slider(
-                            value = tempBufferMin.toFloat(),
-                            onValueChange = { tempBufferMin = it.toInt() },
-                            valueRange = 10f..120f,
-                            steps = 21,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .focusable(),
-                            colors = SliderDefaults.colors(
-                                thumbColor = Color(0xFFFFD700),
-                                activeTrackColor = Color(0xFFFFD700),
-                                inactiveTrackColor = Color.White.copy(alpha = 0.3f)
-                            )
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-
                         // 最大缓冲时长
                         Text(
                             text = "最大缓冲: ${tempBufferMax}秒",
@@ -957,20 +932,49 @@ fun TvPlayContent(
                             color = Color.White
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        Slider(
-                            value = tempBufferMax.toFloat(),
-                            onValueChange = { tempBufferMax = it.toInt() },
-                            valueRange = 50f..300f,
-                            steps = 24,
+                        var isSliderFocused by remember { mutableStateOf(false) }
+                        val sliderFocusRequester = remember { FocusRequester() }
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .focusable(),
-                            colors = SliderDefaults.colors(
-                                thumbColor = Color(0xFFFFD700),
-                                activeTrackColor = Color(0xFFFFD700),
-                                inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                                .focusRequester(sliderFocusRequester)
+                                .tvFocusable()
+                                .onFocusChanged { isSliderFocused = it.isFocused }
+                                .onKeyEvent { event ->
+                                    if (event.type == KeyEventType.KeyDown) {
+                                        when (event.key) {
+                                            Key.DirectionLeft -> {
+                                                tempBufferMax = (tempBufferMax - 10).coerceAtLeast(50)
+                                                true
+                                            }
+                                            Key.DirectionRight -> {
+                                                tempBufferMax = (tempBufferMax + 10).coerceAtMost(300)
+                                                true
+                                            }
+                                            else -> false
+                                        }
+                                    } else false
+                                }
+                                .border(
+                                    if (isSliderFocused) 2.dp else 0.dp,
+                                    if (isSliderFocused) Color(0xFFFFD700) else Color.Transparent,
+                                    RoundedCornerShape(4.dp)
+                                )
+                                .padding(4.dp)
+                        ) {
+                            Slider(
+                                value = tempBufferMax.toFloat(),
+                                onValueChange = { tempBufferMax = it.toInt() },
+                                valueRange = 50f..300f,
+                                steps = 24,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = SliderDefaults.colors(
+                                    thumbColor = Color(0xFFFFD700),
+                                    activeTrackColor = Color(0xFFFFD700),
+                                    inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                                )
                             )
-                        )
+                        }
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
@@ -1012,7 +1016,7 @@ fun TvPlayContent(
                                     .tvFocusable()
                                     .onFocusChanged { isSaveFocused = it.isFocused }
                                     .clickable {
-                                        onUpdateBufferSettings(tempBufferMin, tempBufferMax)
+                                        onUpdateBufferSettings(tempBufferMax)
                                         showSettingsDrawer = false
                                     }
                                     .background(Color(0xFF4CAF50), RoundedCornerShape(8.dp))

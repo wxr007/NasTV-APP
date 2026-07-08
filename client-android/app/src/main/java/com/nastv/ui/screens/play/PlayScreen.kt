@@ -69,7 +69,6 @@ fun PlayScreen(
     val restorePosition by viewModel.restorePosition.collectAsState()
     val seekDuration by viewModel.seekDuration.collectAsState()
     val cachedEpisodeIndices by viewModel.cachedEpisodeIndices.collectAsState()
-    val bufferMinDuration by viewModel.bufferMinDuration.collectAsState()
     val bufferMaxDuration by viewModel.bufferMaxDuration.collectAsState()
 
     // Player state for custom controls
@@ -214,14 +213,14 @@ fun PlayScreen(
 
                         val loadControl = DefaultLoadControl.Builder()
                             .setBufferDurationsMs(
-                                bufferMinDuration * 1000,  // minBuffer
+                                50 * 1000,  // minBuffer (固定50秒)
                                 bufferMaxDuration * 1000,  // maxBuffer
                                 DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS,
                                 DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
                             )
                             .build()
 
-                        val exoPlayer = remember(bufferMinDuration, bufferMaxDuration) {
+                        val exoPlayer = remember(bufferMaxDuration) {
                             ExoPlayer.Builder(context)
                                 .setMediaSourceFactory(mediaSourceFactory)
                                 .setBandwidthMeter(bandwidthMeter)
@@ -474,7 +473,6 @@ fun PlayScreen(
                             cachedEpisodeIndices = cachedEpisodeIndices,
                             isBuffering = isBuffering,
                             downloadSpeed = downloadSpeed,
-                            bufferMinDuration = bufferMinDuration,
                             bufferMaxDuration = bufferMaxDuration,
                             onToggleFavorite = { viewModel.toggleFavorite() },
                             onSelectLine = { viewModel.selectLine(it) },
@@ -491,7 +489,7 @@ fun PlayScreen(
                                 if (isPlaying) exoPlayer.pause() else exoPlayer.play()
                             },
                             onToggleControls = { controlsVisible = !controlsVisible },
-                            onUpdateBufferSettings = { min, max -> viewModel.updateBufferSettings(min, max) },
+                            onUpdateBufferSettings = { max -> viewModel.updateBufferSettings(max) },
                             seekDuration = seekDuration,
                         )
                     } else {
