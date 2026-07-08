@@ -221,10 +221,13 @@ fun PlayScreen(
                             .build()
 
                         val exoPlayerRef = remember { mutableStateOf<ExoPlayer?>(null) }
+                        // 保存重建前的播放位置，在 setMediaItem 后恢复
+                        val savedPositionForRestore = remember(bufferMaxDuration) {
+                            exoPlayerRef.value?.currentPosition ?: 0L
+                        }
                         val exoPlayer = remember(bufferMaxDuration) {
                             val oldPlayer = exoPlayerRef.value
-                            // 保存旧播放器的播放状态和位置
-                            val savedPosition = oldPlayer?.currentPosition ?: 0L
+                            // 保存旧播放器的播放状态
                             val savedIsPlaying = oldPlayer?.isPlaying ?: true
                             // 释放旧的 ExoPlayer，防止两个播放器同时播放
                             oldPlayer?.release()
@@ -235,10 +238,6 @@ fun PlayScreen(
                                 .build()
                             // 首次进入自动播放，重建时保持之前的播放/暂停状态
                             player.playWhenReady = if (oldPlayer == null) true else savedIsPlaying
-                            // 重建时恢复播放位置
-                            if (savedPosition > 0) {
-                                player.seekTo(savedPosition)
-                            }
                             player.addListener(object : Player.Listener {
                                 override fun onIsPlayingChanged(playing: Boolean) {
                                     android.util.Log.d("ExoPlayer", "onIsPlayingChanged: $playing")
@@ -298,6 +297,14 @@ fun PlayScreen(
                             val mediaItem = MediaItem.fromUri(url)
                             exoPlayer.setMediaItem(mediaItem)
                             exoPlayer.prepare()
+                            // 缓冲配置重建后，恢复之前的播放位置
+                            if (savedPositionForRestore > 0) {
+                                var attempts = 0
+                                while (exoPlayer.duration <= 0 && attempts < 20) { delay(300); attempts++ }
+                                if (exoPlayer.duration > 0) {
+                                    exoPlayer.seekTo(savedPositionForRestore.coerceAtMost(exoPlayer.duration))
+                                }
+                            }
                         }
                     }
 
@@ -352,7 +359,8 @@ fun PlayScreen(
 
                     DisposableEffect(Unit) {
                         onDispose {
-                            exoPlayer.release()
+                            // 释放最新的播放器，防止退出后仍在播放
+                            exoPlayerRef.value?.release()
                             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
                         }
                     }
