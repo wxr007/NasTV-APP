@@ -137,6 +137,9 @@ fun TvPlayContent(
                             setBackgroundColor(android.graphics.Color.BLACK)
                         }
                     },
+                    update = { view ->
+                        view.player = exoPlayer
+                    },
                     modifier = Modifier.fillMaxSize()
                 )
 
