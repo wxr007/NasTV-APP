@@ -7,6 +7,7 @@ import com.nastv.data.model.Episode
 import com.nastv.data.model.VideoDetail
 import com.nastv.data.repository.PlayRepository
 import com.nastv.data.repository.Result
+import com.nastv.data.repository.SourceRepository
 import com.nastv.data.repository.UserDataRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +21,8 @@ import javax.inject.Inject
 class PlayViewModel @Inject constructor(
     private val playRepository: PlayRepository,
     private val userDataRepository: UserDataRepository,
-    private val preferencesRepository: PreferencesRepository
+    private val preferencesRepository: PreferencesRepository,
+    private val sourceRepository: SourceRepository
 ) : ViewModel() {
 
     private val _videoDetail = MutableStateFlow<VideoDetail?>(null)
@@ -62,6 +64,9 @@ class PlayViewModel @Inject constructor(
     private val _cachedEpisodeIndices = MutableStateFlow<Set<Int>>(emptySet())
     val cachedEpisodeIndices: StateFlow<Set<Int>> = _cachedEpisodeIndices.asStateFlow()
 
+    private val _sourceName = MutableStateFlow<String?>(null)
+    val sourceName: StateFlow<String?> = _sourceName.asStateFlow()
+
     init {
         viewModelScope.launch {
             _seekDuration.value = preferencesRepository.seekDurationFlow.first()
@@ -74,6 +79,16 @@ class PlayViewModel @Inject constructor(
             _isLoading.value = true
             _errorMessage.value = null
             _restorePosition.value = null
+
+            // 加载源名称
+            when (val sourcesResult = sourceRepository.getSources()) {
+                is Result.Success -> {
+                    _sourceName.value = sourcesResult.data.find { it.id == sourceId }?.name
+                }
+                else -> {
+                    _sourceName.value = null
+                }
+            }
 
             // First, check if there's play progress to restore
             val progressResult = userDataRepository.getPlayProgress(sourceId, videoId)

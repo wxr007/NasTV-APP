@@ -70,6 +70,7 @@ fun PlayScreen(
     val seekDuration by viewModel.seekDuration.collectAsState()
     val cachedEpisodeIndices by viewModel.cachedEpisodeIndices.collectAsState()
     val bufferMaxDuration by viewModel.bufferMaxDuration.collectAsState()
+    val sourceName by viewModel.sourceName.collectAsState()
 
     // Player state for custom controls
     var isPlaying by remember { mutableStateOf(false) }
@@ -502,6 +503,7 @@ fun PlayScreen(
                             isBuffering = isBuffering,
                             downloadSpeed = downloadSpeed,
                             bufferMaxDuration = bufferMaxDuration,
+                            sourceName = sourceName,
                             onToggleFavorite = { viewModel.toggleFavorite() },
                             onSelectLine = { viewModel.selectLine(it) },
                             onPlayEpisode = { episode ->
