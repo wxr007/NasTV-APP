@@ -130,16 +130,26 @@ fun PhonePlayContent(
                 )
             }
 
-            // 缓冲时显示加载动画
+            // 缓冲时显示加载动画 + 速度
             if (isBuffering) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(
-                        color = Color.White,
-                        modifier = Modifier.size(48.dp)
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        CircularProgressIndicator(
+                            color = Color.White,
+                            modifier = Modifier.size(48.dp)
+                        )
+                        Text(
+                            text = formatSpeed(downloadSpeed),
+                            color = Color.White,
+                            fontSize = 14.sp
+                        )
+                    }
                 }
             }
 
@@ -238,6 +248,11 @@ fun PhonePlayContent(
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
+                            detail.area?.let { Text(text = it, style = MaterialTheme.typography.bodyMedium) }
+                            detail.year?.let { Text(text = it, style = MaterialTheme.typography.bodyMedium) }
+                            detail.type?.let {
+                                Text(text = it, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF4CAF50))
+                            }
                             Surface(
                                 shape = RoundedCornerShape(4.dp),
                                 color = MaterialTheme.colorScheme.surfaceVariant
@@ -247,10 +262,6 @@ fun PhonePlayContent(
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                                     style = MaterialTheme.typography.labelSmall
                                 )
-                            }
-                            detail.year?.let { Text(text = it, style = MaterialTheme.typography.bodyMedium) }
-                            detail.type?.let {
-                                Text(text = it, style = MaterialTheme.typography.bodyMedium, color = Color(0xFF4CAF50))
                             }
                         }
                         Text(

@@ -162,36 +162,6 @@ fun TvPlayContent(
                 )
 
                 Box(modifier = Modifier.fillMaxSize().then(gestureModifier))
-
-                seekIndicatorText?.let { text ->
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = text,
-                            color = Color.White,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            modifier = Modifier
-                                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
-                    }
-                }
-
-                // 缓冲时显示加载动画
-                if (isBuffering) {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            color = Color.White,
-                            modifier = Modifier.size(48.dp)
-                        )
-                    }
-                }
             }
         }
     }
@@ -230,6 +200,47 @@ fun TvPlayContent(
                     }
             ) {
                 playerContent(exoPlayer)
+
+                // 快进/快退指示
+                seekIndicatorText?.let { text ->
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = text,
+                            color = Color.White,
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier
+                                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        )
+                    }
+                }
+
+                // 缓冲时显示加载动画 + 速度
+                if (isBuffering) {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            CircularProgressIndicator(
+                                color = Color.White,
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Text(
+                                text = formatSpeed(downloadSpeed),
+                                color = Color.White,
+                                fontSize = 14.sp
+                            )
+                        }
+                    }
+                }
 
                 // 右上角始终显示下载速度
                 Box(
@@ -394,6 +405,47 @@ fun TvPlayContent(
                             .clickable { isPlayerMaximized = true }
                     ) {
                         playerContent(exoPlayer)
+
+                        // 快进/快退指示
+                        seekIndicatorText?.let { text ->
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = text,
+                                    color = Color.White,
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    modifier = Modifier
+                                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                                )
+                            }
+                        }
+
+                        // 缓冲时显示加载动画 + 速度
+                        if (isBuffering) {
+                            Box(
+                                modifier = Modifier.fillMaxSize(),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    CircularProgressIndicator(
+                                        color = Color.White,
+                                        modifier = Modifier.size(48.dp)
+                                    )
+                                    Text(
+                                        text = formatSpeed(downloadSpeed),
+                                        color = Color.White,
+                                        fontSize = 14.sp
+                                    )
+                                }
+                            }
+                        }
 
                         // 右上角始终显示下载速度
                         Box(
