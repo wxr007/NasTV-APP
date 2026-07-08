@@ -118,8 +118,8 @@ fun PlayScreen(
     }
 
     // Auto-hide controls when playing
-    LaunchedEffect(isPlaying, controlsVisible) {
-        if (isPlaying && controlsVisible) {
+    LaunchedEffect(isPlaying, controlsVisible, isSeeking) {
+        if (isPlaying && controlsVisible && !isSeeking) {
             delay(3000)
             controlsVisible = false
         }
@@ -250,16 +250,7 @@ fun PlayScreen(
 
                     LaunchedEffect(playUrl) {
                         playUrl?.let { url ->
-                            // 缓存 URL 不以 .m3u8 结尾，需要显式指定 MIME 类型
-                            val isCacheUrl = url.contains("/api/cache/m3u8/")
-                            val mediaItem = if (isCacheUrl) {
-                                MediaItem.Builder()
-                                    .setUri(url)
-                                    .setMimeType("application/vnd.apple.mpegurl")
-                                    .build()
-                            } else {
-                                MediaItem.fromUri(url)
-                            }
+                            val mediaItem = MediaItem.fromUri(url)
                             exoPlayer.setMediaItem(mediaItem)
                             exoPlayer.prepare()
                         }
