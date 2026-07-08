@@ -263,18 +263,18 @@ fun PlayScreen(
                             player
                         }
 
-                        LaunchedEffect(exoPlayer, bandwidthMeter) {
+                        // 使用 TransferListener 统计的字节数计算瞬时速度
+                        LaunchedEffect(exoPlayer) {
                             while (true) {
-                                delay(500)
-                                val isPlaying = exoPlayer.isPlaying
-                                val bitrateEstimate = bandwidthMeter.bitrateEstimate
-                                val meterSpeed = if (bitrateEstimate > 0 && bitrateEstimate < Long.MAX_VALUE) {
-                                    bitrateEstimate / 8
-                                } else {
-                                    0L
+                                delay(1000)
+                                val now = System.currentTimeMillis()
+                                val elapsed = (now - lastSpeedTime) / 1000f
+                                val bytesDelta = transferredBytes - lastTransferredBytes
+                                if (elapsed > 0) {
+                                    downloadSpeed = (bytesDelta / elapsed).toLong()
                                 }
-                                downloadSpeed = meterSpeed
-                                android.util.Log.d("SpeedDebug", "speed: isPlaying=$isPlaying, bitrateEstimate=$bitrateEstimate, final=${formatSpeed(downloadSpeed)}")
+                                lastTransferredBytes = transferredBytes
+                                lastSpeedTime = now
                             }
                         }
 
@@ -294,15 +294,18 @@ fun PlayScreen(
 
                     LaunchedEffect(playUrl, exoPlayer) {
                         playUrl?.let { url ->
+                            // 保存当前播放位置（切换线路或缓冲重建前）
+                            val positionBeforeSwitch = exoPlayer.currentPosition
                             val mediaItem = MediaItem.fromUri(url)
                             exoPlayer.setMediaItem(mediaItem)
                             exoPlayer.prepare()
-                            // 缓冲配置重建后，恢复之前的播放位置
-                            if (savedPositionForRestore > 0) {
+                            // 优先使用切换前位置（>0 说明是切换线路），否则使用缓冲重建保存的位置
+                            val restorePos = if (positionBeforeSwitch > 0) positionBeforeSwitch else savedPositionForRestore
+                            if (restorePos > 0) {
                                 var attempts = 0
                                 while (exoPlayer.duration <= 0 && attempts < 20) { delay(300); attempts++ }
                                 if (exoPlayer.duration > 0) {
-                                    exoPlayer.seekTo(savedPositionForRestore.coerceAtMost(exoPlayer.duration))
+                                    exoPlayer.seekTo(restorePos.coerceAtMost(exoPlayer.duration))
                                 }
                             }
                         }
