@@ -859,11 +859,6 @@ fun TvPlayContent(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .focusable()
-                    .focusProperties {
-                        // 限制焦点只能在抽屉内部移动
-                        exit = { FocusRequester.Cancel }
-                    }
                     .onPreviewKeyEvent { event ->
                         if (event.type == KeyEventType.KeyDown && event.key == Key.Back) {
                             showSettingsDrawer = false
@@ -926,8 +921,8 @@ fun TvPlayContent(
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .focusRequester(sliderFocusRequester)
                                 .focusable()
+                                .focusRequester(sliderFocusRequester)
                                 .focusProperties {
                                     down = cancelFocusRequester
                                 }
