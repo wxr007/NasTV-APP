@@ -70,6 +70,7 @@ fun PlayScreen(
     val seekDuration by viewModel.seekDuration.collectAsState()
     val cachedEpisodeIndices by viewModel.cachedEpisodeIndices.collectAsState()
     val bufferMaxDuration by viewModel.bufferMaxDuration.collectAsState()
+    val bufferMinDuration by viewModel.bufferMinDuration.collectAsState()
     val sourceName by viewModel.sourceName.collectAsState()
 
     // Player state for custom controls
@@ -503,6 +504,7 @@ fun PlayScreen(
                             isBuffering = isBuffering,
                             downloadSpeed = downloadSpeed,
                             bufferMaxDuration = bufferMaxDuration,
+                            bufferMinDuration = bufferMinDuration,
                             sourceName = sourceName,
                             onToggleFavorite = { viewModel.toggleFavorite() },
                             onSelectLine = { viewModel.selectLine(it) },
@@ -522,7 +524,8 @@ fun PlayScreen(
                                 if (isPlaying) exoPlayer.pause() else exoPlayer.play()
                             },
                             onToggleControls = { controlsVisible = !controlsVisible },
-                            onUpdateBufferSettings = { max -> viewModel.updateBufferSettings(max) },
+                            onUpdateBufferSettings = { min, max -> viewModel.updateBufferSettings(min, max) },
+                            onSeekIndicator = { text -> seekIndicatorText = text },
                             seekDuration = seekDuration,
                         )
                     } else {

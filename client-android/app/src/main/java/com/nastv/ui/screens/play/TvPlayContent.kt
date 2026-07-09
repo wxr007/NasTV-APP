@@ -16,6 +16,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.FastForward
+import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.FullscreenExit
@@ -77,6 +79,7 @@ fun TvPlayContent(
     isBuffering: Boolean,
     downloadSpeed: Long,
     bufferMaxDuration: Int,
+    bufferMinDuration: Int,
     sourceName: String?,
     onToggleFavorite: () -> Unit,
     onSelectLine: (Int) -> Unit,
@@ -87,7 +90,8 @@ fun TvPlayContent(
     onSeekStart: () -> Unit,
     onPlayPause: () -> Unit,
     onToggleControls: () -> Unit,
-    onUpdateBufferSettings: (Int) -> Unit,
+    onUpdateBufferSettings: (Int, Int) -> Unit,
+    onSeekIndicator: (String?) -> Unit,
     seekDuration: Int = 10,
 ) {
     var sortAscending by remember { mutableStateOf(true) }
@@ -97,6 +101,7 @@ fun TvPlayContent(
     var isEpisodeFocused by remember { mutableStateOf(false) }
     var showSettingsDrawer by remember { mutableStateOf(false) }
     var tempBufferMax by remember { mutableStateOf(bufferMaxDuration) }
+    var tempBufferMin by remember { mutableStateOf(bufferMinDuration) }
 
     val maximizedFocusRequester = remember { FocusRequester() }
     val episodeRangeFocusRequester = remember { FocusRequester() }
@@ -186,11 +191,13 @@ fun TvPlayContent(
                                 Key.DirectionLeft -> {
                                     val newPos = (currentPosition - seekDuration * 1000L).coerceAtLeast(0)
                                     exoPlayer.seekTo(newPos)
+                                    onSeekIndicator("◀◀ ${seekDuration}s")
                                     true
                                 }
                                 Key.DirectionRight -> {
                                     val newPos = (currentPosition + seekDuration * 1000L).coerceAtMost(totalDuration)
                                     exoPlayer.seekTo(newPos)
+                                    onSeekIndicator("${seekDuration}s ▶▶")
                                     true
                                 }
                                 Key.DirectionUp, Key.DirectionDown -> true
@@ -201,21 +208,47 @@ fun TvPlayContent(
             ) {
                 playerContent(exoPlayer)
 
-                // 快进/快退指示
+                // 快进/快退指示（图标 + 时间）
                 seekIndicatorText?.let { text ->
+                    val isForward = text.contains("▶")
+                    val isBackward = text.contains("◀")
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = text,
-                            color = Color.White,
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
                             modifier = Modifier
-                                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                        )
+                                .offset(x = when {
+                                    isForward -> 300.dp
+                                    isBackward -> (-300).dp
+                                    else -> 0.dp
+                                })
+                                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                                .padding(horizontal = 32.dp, vertical = 20.dp)
+                        ) {
+                            if (isForward) {
+                                Icon(
+                                    imageVector = Icons.Filled.FastForward,
+                                    contentDescription = "快进",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                            } else if (isBackward) {
+                                Icon(
+                                    imageVector = Icons.Filled.FastRewind,
+                                    contentDescription = "快退",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                            }
+                            Text(
+                                text = "${formatTime(currentPosition)} / ${formatTime(totalDuration)}",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Color.White
+                            )
+                        }
                     }
                 }
 
@@ -256,8 +289,8 @@ fun TvPlayContent(
                     )
                 }
 
-                // 暂停时显示半透明播放图标 + 时间（AndroidView 之上无法用普通 Compose 覆盖）
-                if (!isPlaying && !controlsVisible) {
+                // 用户主动暂停时显示播放图标 + 时间（缓冲时不显示）
+                if (!isPlaying && !isBuffering && !controlsVisible) {
                     Column(
                         modifier = Modifier.align(Alignment.Center),
                         horizontalAlignment = Alignment.CenterHorizontally
@@ -406,21 +439,42 @@ fun TvPlayContent(
                     ) {
                         playerContent(exoPlayer)
 
-                        // 快进/快退指示
+                        // 快进/快退指示（图标 + 时间）
                         seekIndicatorText?.let { text ->
+                            val isForward = text.contains("▶")
+                            val isBackward = text.contains("◀")
                             Box(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = text,
-                                    color = Color.White,
-                                    fontSize = 20.sp,
-                                    fontWeight = FontWeight.Bold,
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    verticalArrangement = Arrangement.spacedBy(8.dp),
                                     modifier = Modifier
-                                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
-                                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                                )
+                                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                                        .padding(horizontal = 32.dp, vertical = 20.dp)
+                                ) {
+                                    if (isForward) {
+                                        Icon(
+                                            imageVector = Icons.Filled.FastForward,
+                                            contentDescription = "快进",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(48.dp)
+                                        )
+                                    } else if (isBackward) {
+                                        Icon(
+                                            imageVector = Icons.Filled.FastRewind,
+                                            contentDescription = "快退",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(48.dp)
+                                        )
+                                    }
+                                    Text(
+                                        text = "${formatTime(currentPosition)} / ${formatTime(totalDuration)}",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = Color.White
+                                    )
+                                }
                             }
                         }
 
@@ -1048,6 +1102,69 @@ fun TvPlayContent(
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.6f)
                         )
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // 最小缓冲时长
+                        Text(
+                            text = "最小缓冲: ${tempBufferMin}秒",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        var isMinSliderFocused by remember { mutableStateOf(false) }
+                        val minSliderFocusRequester = remember { FocusRequester() }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(minSliderFocusRequester)
+                                .focusProperties { canFocus = true }
+                                .onFocusChanged { isMinSliderFocused = it.isFocused }
+                                .onKeyEvent { event ->
+                                    if (event.type == KeyEventType.KeyDown) {
+                                        when (event.key) {
+                                            Key.DirectionLeft -> {
+                                                tempBufferMin = (tempBufferMin - 10).coerceAtLeast(20)
+                                                true
+                                            }
+                                            Key.DirectionRight -> {
+                                                tempBufferMin = (tempBufferMin + 10).coerceAtMost(150)
+                                                true
+                                            }
+                                            else -> false
+                                        }
+                                    } else false
+                                }
+                                .background(
+                                    if (isMinSliderFocused) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .border(
+                                    if (isMinSliderFocused) 3.dp else 0.dp,
+                                    if (isMinSliderFocused) Color(0xFFFFD700) else Color.Transparent,
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .padding(8.dp)
+                        ) {
+                            Slider(
+                                value = tempBufferMin.toFloat(),
+                                onValueChange = { tempBufferMin = it.toInt() },
+                                valueRange = 20f..150f,
+                                steps = 12,
+                                modifier = Modifier.fillMaxWidth(),
+                                colors = SliderDefaults.colors(
+                                    thumbColor = Color(0xFFFFD700),
+                                    activeTrackColor = Color(0xFFFFD700),
+                                    inactiveTrackColor = Color.White.copy(alpha = 0.3f)
+                                )
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        Text(
+                            text = "提示: 最小缓冲确保视频播放前有足够的缓存数据",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color.White.copy(alpha = 0.6f)
+                        )
                         Spacer(modifier = Modifier.height(32.dp))
 
                         // 按钮行
@@ -1082,7 +1199,7 @@ fun TvPlayContent(
                                     .tvFocusable()
                                     .onFocusChanged { isSaveFocused = it.isFocused }
                                     .clickable {
-                                        onUpdateBufferSettings(tempBufferMax)
+                                        onUpdateBufferSettings(tempBufferMin, tempBufferMax)
                                         showSettingsDrawer = false
                                     }
                                     .background(Color(0xFF4CAF50), RoundedCornerShape(8.dp))

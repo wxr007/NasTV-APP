@@ -20,6 +20,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.nastv.data.local.PreferencesRepository
+import com.nastv.data.repository.AccountRepository
+import com.nastv.data.repository.Result
+import com.nastv.data.repository.ServerRepository
 import com.nastv.ui.screens.cache.CacheScreen
 import com.nastv.ui.screens.favorites.FavoritesScreen
 import com.nastv.ui.screens.history.HistoryScreen
@@ -35,29 +38,78 @@ import com.nastv.ui.theme.LocalIsTv
 @Composable
 fun NavGraph(
     navController: NavHostController,
-    preferencesRepository: PreferencesRepository = hiltViewModel<PreferencesViewModel>().repository
+    preferencesRepository: PreferencesRepository = hiltViewModel<PreferencesViewModel>().repository,
+    accountRepository: AccountRepository = hiltViewModel<AccountViewModel>().repository,
+    serverRepository: ServerRepository = hiltViewModel<ServerViewModel>().repository
 ) {
     var initialNavigationDone by remember { mutableStateOf(false) }
-    
+
     Log.d("NavGraph", "NavGraph recomposed, initialNavigationDone=$initialNavigationDone")
-    
-    // 初始导航：从 DataStore 读取当前状态后导航到正确的页面
+
+    // 初始导航：先健康检查服务器，再自动登录
     LaunchedEffect(Unit) {
         val token = preferencesRepository.authTokenFlow.first()
         val serverId = preferencesRepository.lastServerIdFlow.first()
-        Log.d("NavGraph", "Initial navigation check: token=$token, lastServerId=$serverId")
-        
-        val destination = when {
-            !token.isNullOrEmpty() -> Screen.Home.route
-            !serverId.isNullOrEmpty() -> Screen.Login.createRoute(serverId)
-            else -> null
+        val accountId = preferencesRepository.lastAccountIdFlow.first()
+        Log.d("NavGraph", "Initial check: token=$token, lastServerId=$serverId, lastAccountId=$accountId")
+
+        // 1. 没有服务器记录，直接去服务器选择页
+        if (serverId.isNullOrEmpty()) {
+            Log.d("NavGraph", "No serverId, stay on ServerSelect")
+            initialNavigationDone = true
+            return@LaunchedEffect
         }
-        
-        if (destination != null) {
-            Log.d("NavGraph", "Initial navigation to: $destination")
-            navController.navigate(destination) {
-                popUpTo(Screen.ServerSelect.route) { inclusive = true }
+
+        // 2. 健康检查：服务器不可达则去服务器选择页
+        val server = serverRepository.getServerById(serverId)
+        if (server != null) {
+            val healthResult = serverRepository.checkServerHealth(server.url)
+            if (healthResult !is Result.Success || healthResult.data != true) {
+                Log.d("NavGraph", "Server health check failed, go to ServerSelect")
+                preferencesRepository.clearAuth()
+                navController.navigate(Screen.ServerSelect.route) {
+                    popUpTo(Screen.ServerSelect.route) { inclusive = true }
+                }
+                initialNavigationDone = true
+                return@LaunchedEffect
             }
+            Log.d("NavGraph", "Server health check passed")
+        }
+
+        // 3. 有 token，尝试自动登录
+        if (!token.isNullOrEmpty() && !accountId.isNullOrEmpty()) {
+            try {
+                val account = accountRepository.getAccountById(accountId)
+                if (account != null) {
+                    val result = accountRepository.loginWithAccount(account)
+                    if (result is Result.Success) {
+                        Log.d("NavGraph", "Auto-login successful")
+                        navController.navigate(Screen.Home.route) {
+                            popUpTo(Screen.ServerSelect.route) { inclusive = true }
+                        }
+                        initialNavigationDone = true
+                        return@LaunchedEffect
+                    } else {
+                        Log.d("NavGraph", "Auto-login failed: token expired or invalid")
+                        preferencesRepository.clearAuth()
+                    }
+                } else {
+                    Log.d("NavGraph", "Account not found, go to login")
+                    preferencesRepository.clearAuth()
+                }
+            } catch (e: Exception) {
+                Log.e("NavGraph", "Auto-login error: ${e.message}", e)
+                preferencesRepository.clearAuth()
+            }
+        } else if (!token.isNullOrEmpty()) {
+            // 有 token 但没有 accountId，清除 token
+            preferencesRepository.clearAuth()
+        }
+
+        // 4. 自动登录失败或无 token，去登录页
+        Log.d("NavGraph", "Navigate to Login")
+        navController.navigate(Screen.Login.createRoute(serverId)) {
+            popUpTo(Screen.ServerSelect.route) { inclusive = true }
         }
         initialNavigationDone = true
     }
@@ -246,23 +298,11 @@ fun NavGraph(
                     navController.popBackStack()
                 },
                 onLogout = {
-                    // 退出登录后，从 DataStore 读取 lastServerId，导航到登录页面
+                    // 退出登录后，导航到服务器选择页面
                     scope.launch {
-                        val serverId = preferencesRepository.lastServerIdFlow.first()
-                        Log.d("NavGraph", "onLogout called, lastServerId=$serverId")
-                        if (!serverId.isNullOrEmpty()) {
-                            // 导航到登录页，弹出到服务器选择页
-                            val route = Screen.Login.createRoute(serverId)
-                            Log.d("NavGraph", "Navigating to login with route: $route")
-                            navController.navigate(route) {
-                                popUpTo(Screen.ServerSelect.route) { inclusive = true }
-                            }
-                        } else {
-                            // 如果没有 lastServerId，导航到服务器选择页面
-                            Log.d("NavGraph", "Navigating to server select")
-                            navController.navigate(Screen.ServerSelect.route) {
-                                popUpTo(Screen.ServerSelect.route) { inclusive = true }
-                            }
+                        Log.d("NavGraph", "onLogout called, navigating to server select")
+                        navController.navigate(Screen.ServerSelect.route) {
+                            popUpTo(Screen.ServerSelect.route) { inclusive = true }
                         }
                     }
                 }
@@ -294,4 +334,20 @@ fun NavGraph(
 @dagger.hilt.android.lifecycle.HiltViewModel
 class PreferencesViewModel @javax.inject.Inject constructor(
     val repository: PreferencesRepository
+) : androidx.lifecycle.ViewModel()
+
+/**
+ * ViewModel to expose AccountRepository to the NavGraph.
+ */
+@dagger.hilt.android.lifecycle.HiltViewModel
+class AccountViewModel @javax.inject.Inject constructor(
+    val repository: AccountRepository
+) : androidx.lifecycle.ViewModel()
+
+/**
+ * ViewModel to expose ServerRepository to the NavGraph.
+ */
+@dagger.hilt.android.lifecycle.HiltViewModel
+class ServerViewModel @javax.inject.Inject constructor(
+    val repository: ServerRepository
 ) : androidx.lifecycle.ViewModel()
