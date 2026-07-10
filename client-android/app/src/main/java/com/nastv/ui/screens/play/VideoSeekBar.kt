@@ -43,46 +43,47 @@ fun VideoSeekBar(
     trackHeight: Dp = 6.dp,
     thumbRadius: Dp = 8.dp,
     playedColor: Color = Color.White,
-    bufferedColor: Color = Color(0xFF4CAF50), // 绿色
+    bufferedColor: Color = Color(0xFF4CAF50),
     unplayedColor: Color = Color.White.copy(alpha = 0.3f),
     thumbColor: Color = Color.White
 ) {
-    Box(modifier = modifier.height(thumbRadius * 2)) {
+    Box(
+        modifier = modifier
+            .height(thumbRadius * 2)
+            .pointerInput(enabled) {
+                if (!enabled) return@pointerInput
+                detectTapGestures { offset ->
+                    val newValue = (offset.x / size.width).coerceIn(0f, 1f)
+                    onValueChange(newValue)
+                    onValueChangeFinished()
+                }
+            }
+            .pointerInput(enabled) {
+                if (!enabled) return@pointerInput
+                detectHorizontalDragGestures(
+                    onDragStart = { offset ->
+                        val newValue = (offset.x / size.width).coerceIn(0f, 1f)
+                        onValueChange(newValue)
+                    },
+                    onHorizontalDrag = { change, _ ->
+                        val newValue = (change.position.x / size.width).coerceIn(0f, 1f)
+                        onValueChange(newValue)
+                    },
+                    onDragEnd = {
+                        onValueChangeFinished()
+                    }
+                )
+            }
+    ) {
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(thumbRadius * 2)
-                .pointerInput(enabled) {
-                    if (!enabled) return@pointerInput
-                    
-                    detectTapGestures { offset ->
-                        val newValue = (offset.x / size.width).coerceIn(0f, 1f)
-                        onValueChange(newValue)
-                        onValueChangeFinished()
-                    }
-                }
-                .pointerInput(enabled) {
-                    if (!enabled) return@pointerInput
-                    
-                    detectHorizontalDragGestures(
-                        onDragStart = { offset ->
-                            val newValue = (offset.x / size.width).coerceIn(0f, 1f)
-                            onValueChange(newValue)
-                        },
-                        onHorizontalDrag = { change, _ ->
-                            val newValue = (change.position.x / size.width).coerceIn(0f, 1f)
-                            onValueChange(newValue)
-                        },
-                        onDragEnd = {
-                            onValueChangeFinished()
-                        }
-                    )
-                }
         ) {
             val trackHeightPx = trackHeight.toPx()
             val thumbRadiusPx = thumbRadius.toPx()
             val centerY = size.height / 2
-            
+
             // 绘制未播放轨道
             drawProgressBar(
                 progress = 1f,
@@ -90,7 +91,7 @@ fun VideoSeekBar(
                 trackHeight = trackHeightPx,
                 centerY = centerY
             )
-            
+
             // 绘制缓冲进度
             drawProgressBar(
                 progress = bufferedValue,
@@ -98,7 +99,7 @@ fun VideoSeekBar(
                 trackHeight = trackHeightPx,
                 centerY = centerY
             )
-            
+
             // 绘制已播放进度
             drawProgressBar(
                 progress = value,
@@ -106,7 +107,7 @@ fun VideoSeekBar(
                 trackHeight = trackHeightPx,
                 centerY = centerY
             )
-            
+
             // 绘制滑块
             val thumbX = size.width * value
             drawCircle(
