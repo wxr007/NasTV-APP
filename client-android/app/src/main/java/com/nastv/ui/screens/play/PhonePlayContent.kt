@@ -181,9 +181,11 @@ fun PhonePlayContent(
                             else if (totalDuration > 0) currentPosition.toFloat() / totalDuration.toFloat()
                             else 0f,
                         bufferedValue = if (totalDuration > 0) bufferedPosition.toFloat() / totalDuration.toFloat() else 0f,
-                        onValueChange = onSeekChange,
-                        onValueChangeFinished = {
+                        onValueChange = {
                             onSeekStart()
+                            onSeekChange(it)
+                        },
+                        onValueChangeFinished = {
                             onSeekFinished((seekPosition * totalDuration).toLong())
                         },
                         modifier = Modifier.fillMaxWidth(),
