@@ -21,6 +21,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -29,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nastv.ui.components.TVVideoCard
+import android.widget.Toast
 import kotlinx.coroutines.delay
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -72,6 +74,25 @@ fun TVHomeScreen(
         }
         if (selectedIndex in categoryFocusRequesters.indices) {
             categoryFocusRequesters[selectedIndex].requestFocus()
+        }
+    }
+
+    // 再按一次退出程序
+    val context = LocalContext.current
+    var lastBackPressedTime by remember { mutableStateOf(0L) }
+    var exitToast by remember { mutableStateOf<Toast?>(null) }
+    BackHandler(enabled = !isGridFocused) {
+        val currentTime = System.currentTimeMillis()
+        if (currentTime - lastBackPressedTime < 2000) {
+            // 2秒内再次按下，退出应用
+            exitToast?.cancel()
+            val activity = context as? android.app.Activity
+            activity?.finishAffinity()
+        } else {
+            // 第一次按下，显示提示
+            lastBackPressedTime = currentTime
+            exitToast?.cancel()
+            exitToast = Toast.makeText(context, "再按一次退出程序", Toast.LENGTH_SHORT).also { it.show() }
         }
     }
 
