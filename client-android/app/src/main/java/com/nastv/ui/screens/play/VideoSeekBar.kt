@@ -7,6 +7,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -18,19 +20,6 @@ import androidx.compose.ui.unit.dp
 
 /**
  * 自定义视频进度条，支持显示缓冲进度
- *
- * @param value 当前播放进度 (0.0 - 1.0)
- * @param bufferedValue 缓冲进度 (0.0 - 1.0)
- * @param onValueChange 进度变化回调
- * @param onValueChangeFinished 拖动结束回调
- * @param modifier Modifier
- * @param enabled 是否可交互
- * @param trackHeight 轨道高度
- * @param thumbRadius 滑块半径
- * @param playedColor 已播放进度颜色
- * @param bufferedColor 缓冲进度颜色
- * @param unplayedColor 未播放轨道颜色
- * @param thumbColor 滑块颜色
  */
 @Composable
 fun VideoSeekBar(
@@ -47,38 +36,39 @@ fun VideoSeekBar(
     unplayedColor: Color = Color.White.copy(alpha = 0.3f),
     thumbColor: Color = Color.White
 ) {
-    Box(
-        modifier = modifier
-            .height(thumbRadius * 2)
-            .pointerInput(enabled) {
-                if (!enabled) return@pointerInput
-                detectTapGestures { offset ->
-                    val newValue = (offset.x / size.width).coerceIn(0f, 1f)
-                    onValueChange(newValue)
-                    onValueChangeFinished()
-                }
-            }
-            .pointerInput(enabled) {
-                if (!enabled) return@pointerInput
-                detectHorizontalDragGestures(
-                    onDragStart = { offset ->
-                        val newValue = (offset.x / size.width).coerceIn(0f, 1f)
-                        onValueChange(newValue)
-                    },
-                    onHorizontalDrag = { change, _ ->
-                        val newValue = (change.position.x / size.width).coerceIn(0f, 1f)
-                        onValueChange(newValue)
-                    },
-                    onDragEnd = {
-                        onValueChangeFinished()
-                    }
-                )
-            }
-    ) {
+    // 使用 rememberUpdatedState 保持回调引用稳定，避免 pointerInput 因 recomposition 重启
+    val currentOnValueChange by rememberUpdatedState(onValueChange)
+    val currentOnValueChangeFinished by rememberUpdatedState(onValueChangeFinished)
+
+    Box(modifier = modifier.height(thumbRadius * 2)) {
         Canvas(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(thumbRadius * 2)
+                .pointerInput(enabled) {
+                    if (!enabled) return@pointerInput
+                    detectTapGestures { offset ->
+                        val newValue = (offset.x / size.width).coerceIn(0f, 1f)
+                        currentOnValueChange(newValue)
+                        currentOnValueChangeFinished()
+                    }
+                }
+                .pointerInput(enabled) {
+                    if (!enabled) return@pointerInput
+                    detectHorizontalDragGestures(
+                        onDragStart = { offset ->
+                            val newValue = (offset.x / size.width).coerceIn(0f, 1f)
+                            currentOnValueChange(newValue)
+                        },
+                        onHorizontalDrag = { change, _ ->
+                            val newValue = (change.position.x / size.width).coerceIn(0f, 1f)
+                            currentOnValueChange(newValue)
+                        },
+                        onDragEnd = {
+                            currentOnValueChangeFinished()
+                        }
+                    )
+                }
         ) {
             val trackHeightPx = trackHeight.toPx()
             val thumbRadiusPx = thumbRadius.toPx()

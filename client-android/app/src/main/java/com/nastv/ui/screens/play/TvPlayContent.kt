@@ -365,7 +365,7 @@ fun TvPlayContent(
                         }
                     }
 
-                    if (!isPlaying) {
+                    if (!isPlaying && !isBuffering) {
                         // 暂停时：大图标 + 时间
                         Column(
                             modifier = Modifier.align(Alignment.Center),
@@ -394,7 +394,7 @@ fun TvPlayContent(
                                     .padding(horizontal = 12.dp, vertical = 6.dp)
                             )
                         }
-                    } else {
+                    } else if (isPlaying) {
                         // 播放时：小暂停按钮
                         Box(
                             modifier = Modifier
