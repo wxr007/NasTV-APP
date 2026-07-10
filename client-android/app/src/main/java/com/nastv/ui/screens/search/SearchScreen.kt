@@ -18,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.activity.compose.BackHandler
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nastv.ui.components.TVVideoCard
 import com.nastv.ui.components.VideoCard
@@ -33,6 +34,9 @@ fun SearchScreen(
     val isTv = LocalIsTv.current
     var query by remember { mutableStateOf("") }
     val searchResults by viewModel.searchResults.collectAsState()
+
+    // TV端遥控器退出键返回
+    BackHandler { onNavigateBack() }
     val suggestions by viewModel.suggestions.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
@@ -45,8 +49,10 @@ fun SearchScreen(
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = onNavigateBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+            if (!isTv) {
+                IconButton(onClick = onNavigateBack) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                }
             }
             OutlinedTextField(
                 value = query,

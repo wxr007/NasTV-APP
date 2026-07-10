@@ -24,6 +24,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nastv.data.model.Account
+import com.nastv.ui.theme.LocalIsTv
 import com.nastv.ui.theme.NasTVSurface
 import com.nastv.ui.theme.NasTVSurfaceLight
 import com.nastv.ui.theme.NasTVTextSecondary
@@ -39,6 +40,7 @@ fun LoginScreen(
     val loginState by viewModel.loginState.collectAsState()
     val server by viewModel.server.collectAsState()
     val accounts by viewModel.accounts.collectAsState(initial = emptyList())
+    val isTv = LocalIsTv.current
     
     var showAddAccountDialog by remember { mutableStateOf(false) }
     var isLoading by remember { mutableStateOf(false) }
@@ -95,12 +97,14 @@ fun LoginScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        IconButton(onClick = onBack) {
-                            Icon(
-                                Icons.Default.ArrowBack,
-                                contentDescription = "返回",
-                                tint = MaterialTheme.colorScheme.onSurface
-                            )
+                        if (!isTv) {
+                            IconButton(onClick = onBack) {
+                                Icon(
+                                    Icons.Default.ArrowBack,
+                                    contentDescription = "返回",
+                                    tint = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
                         }
                         Icon(
                             Icons.Default.Person,

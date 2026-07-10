@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.activity.compose.BackHandler
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nastv.data.model.Video
 import com.nastv.ui.components.TVVideoCard
@@ -41,6 +42,9 @@ fun CacheScreen(
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
 
+    // TV端遥控器退出键返回
+    BackHandler { onNavigateBack() }
+
     LaunchedEffect(Unit) {
         viewModel.loadCachedVideos()
     }
@@ -50,8 +54,10 @@ fun CacheScreen(
             TopAppBar(
                 title = { Text("已缓存") },
                 navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                    if (!isTv) {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
+                        }
                     }
                 }
             )
