@@ -104,6 +104,7 @@ fun TvPlayContent(
     var tempBufferMin by remember { mutableStateOf(bufferMinDuration) }
 
     val maximizedFocusRequester = remember { FocusRequester() }
+    val playerFocusRequester = remember { FocusRequester() }
     val episodeRangeFocusRequester = remember { FocusRequester() }
     val descFocusRequester = remember { FocusRequester() }
     val settingsFocusRequester = remember { FocusRequester() }
@@ -111,6 +112,10 @@ fun TvPlayContent(
         if (isPlayerMaximized) {
             maximizedFocusRequester.requestFocus()
         }
+    }
+    // 进入播放页时默认聚焦到播放器
+    LaunchedEffect(Unit) {
+        playerFocusRequester.requestFocus()
     }
     // 关闭简介弹窗后聚焦到简介按钮
     LaunchedEffect(showDescriptionDialog) {
@@ -433,6 +438,7 @@ fun TvPlayContent(
                             .fillMaxHeight()
                             .background(Color.Black)
                             .border(3.dp, playerBorderColor, RoundedCornerShape(4.dp))
+                            .focusRequester(playerFocusRequester)
                             .tvFocusable()
                             .onFocusChanged { isPlayerFocused = it.isFocused }
                             .clickable { isPlayerMaximized = true }
