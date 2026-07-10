@@ -117,16 +117,22 @@ fun TvPlayContent(
     LaunchedEffect(Unit) {
         playerFocusRequester.requestFocus()
     }
-    // 关闭简介弹窗后聚焦到简介按钮
+    // 关闭简介弹窗后聚焦到简介按钮（仅在弹窗曾被打开过时恢复焦点）
+    var descriptionDialogWasOpened by remember { mutableStateOf(false) }
     LaunchedEffect(showDescriptionDialog) {
-        if (!showDescriptionDialog) {
+        if (showDescriptionDialog) {
+            descriptionDialogWasOpened = true
+        } else if (descriptionDialogWasOpened) {
             delay(100)
             descFocusRequester.requestFocus()
         }
     }
-    // 关闭设置抽屉后聚焦到设置按钮
+    // 关闭设置抽屉后聚焦到设置按钮（仅在抽屉曾被打开过时恢复焦点）
+    var settingsDrawerWasOpened by remember { mutableStateOf(false) }
     LaunchedEffect(showSettingsDrawer) {
-        if (!showSettingsDrawer) {
+        if (showSettingsDrawer) {
+            settingsDrawerWasOpened = true
+        } else if (settingsDrawerWasOpened) {
             delay(100)
             settingsFocusRequester.requestFocus()
         }
