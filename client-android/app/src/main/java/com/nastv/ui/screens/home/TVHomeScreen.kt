@@ -186,8 +186,8 @@ fun TVHomeScreen(
                 onDismissRequest = { sourceDropdownExpanded = false },
                 title = { Text("选择站源") },
                 text = {
-                    Column {
-                        sources.forEach { source ->
+                    LazyColumn {
+                        items(sources) { source ->
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()

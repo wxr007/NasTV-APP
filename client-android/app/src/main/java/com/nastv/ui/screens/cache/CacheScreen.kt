@@ -41,6 +41,7 @@ fun CacheScreen(
     val videos by viewModel.videos.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
+    val sourceNameMap by viewModel.sourceNameMap.collectAsState()
 
     // TV端遥控器退出键返回
     BackHandler { onNavigateBack() }
@@ -165,7 +166,8 @@ fun CacheScreen(
                                                 viewModel.saveScrollState(videoIndex)
                                                 onNavigateToPlay(cachedVideo.sourceId, cachedVideo.videoId)
                                             },
-                                            shouldAutoFocus = videoIndex == focusTargetIndex
+                                            shouldAutoFocus = videoIndex == focusTargetIndex,
+                                            sourceName = sourceNameMap[cachedVideo.sourceId]
                                         )
                                         // 左上角缓存集数角标
                                         if (cachedVideo.cachedCount > 0) {
@@ -219,7 +221,8 @@ fun CacheScreen(
                             Box {
                                 VideoCard(
                                     video = video,
-                                    onClick = { onNavigateToPlay(cachedVideo.sourceId, cachedVideo.videoId) }
+                                    onClick = { onNavigateToPlay(cachedVideo.sourceId, cachedVideo.videoId) },
+                                    sourceName = sourceNameMap[cachedVideo.sourceId]
                                 )
                                 // 左上角缓存集数角标
                                 if (cachedVideo.cachedCount > 0) {

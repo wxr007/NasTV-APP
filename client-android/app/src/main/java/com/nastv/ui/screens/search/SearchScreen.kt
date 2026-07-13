@@ -34,6 +34,7 @@ fun SearchScreen(
     val isTv = LocalIsTv.current
     var query by remember { mutableStateOf("") }
     val searchResults by viewModel.searchResults.collectAsState()
+    val sourceNameMap by viewModel.sourceNameMap.collectAsState()
 
     // TV端遥控器退出键返回
     BackHandler { onNavigateBack() }
@@ -181,7 +182,8 @@ fun SearchScreen(
                                             onNavigateToPlay(video.sourceId, video.id)
                                         },
                                         modifier = Modifier.weight(1f),
-                                        shouldAutoFocus = videoIndex == focusTargetIndex
+                                        shouldAutoFocus = videoIndex == focusTargetIndex,
+                                        sourceName = sourceNameMap[video.sourceId]
                                     )
                                 }
                                 // 填充剩余空间
@@ -206,7 +208,8 @@ fun SearchScreen(
                         items(items = searchResults) { video ->
                             VideoCard(
                                 video = video,
-                                onClick = { onNavigateToPlay(video.sourceId, video.id) }
+                                onClick = { onNavigateToPlay(video.sourceId, video.id) },
+                                sourceName = sourceNameMap[video.sourceId]
                             )
                         }
                     }

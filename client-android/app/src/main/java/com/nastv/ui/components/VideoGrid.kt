@@ -33,7 +33,8 @@ fun VideoGrid(
     modifier: Modifier = Modifier,
     savedScrollIndex: Int = 0,
     savedScrollOffset: Int = 0,
-    onScrollStateChanged: (index: Int, offset: Int) -> Unit = { _, _ -> }
+    onScrollStateChanged: (index: Int, offset: Int) -> Unit = { _, _ -> },
+    sourceNameMap: Map<String, String> = emptyMap()
 ) {
     // TV 模式使用 5 列，手机端使用 3 列
     val columns = if (isTv) 5 else 3
@@ -51,7 +52,8 @@ fun VideoGrid(
             modifier = modifier,
             savedScrollIndex = savedScrollIndex,
             savedScrollOffset = savedScrollOffset,
-            onScrollStateChanged = onScrollStateChanged
+            onScrollStateChanged = onScrollStateChanged,
+            sourceNameMap = sourceNameMap
         )
     } else {
         PhoneModeGrid(
@@ -65,7 +67,8 @@ fun VideoGrid(
             modifier = modifier,
             savedScrollIndex = savedScrollIndex,
             savedScrollOffset = savedScrollOffset,
-            onScrollStateChanged = onScrollStateChanged
+            onScrollStateChanged = onScrollStateChanged,
+            sourceNameMap = sourceNameMap
         )
     }
 }
@@ -82,7 +85,8 @@ private fun TvModeGrid(
     modifier: Modifier,
     savedScrollIndex: Int,
     savedScrollOffset: Int,
-    onScrollStateChanged: (index: Int, offset: Int) -> Unit
+    onScrollStateChanged: (index: Int, offset: Int) -> Unit,
+    sourceNameMap: Map<String, String> = emptyMap()
 ) {
     val listState = rememberLazyListState()
 
@@ -156,7 +160,8 @@ private fun TvModeGrid(
                             video = video,
                             onClick = { onVideoClick(video.sourceId, video.id) },
                             modifier = Modifier.weight(1f),
-                            shouldAutoFocus = savedScrollIndex > 0 && videoIndex == savedScrollIndex
+                            shouldAutoFocus = savedScrollIndex > 0 && videoIndex == savedScrollIndex,
+                            sourceName = sourceNameMap[video.sourceId]
                         )
                     }
                     // 填充剩余空间，保持最后一行的对齐
@@ -191,7 +196,8 @@ private fun PhoneModeGrid(
     modifier: Modifier,
     savedScrollIndex: Int,
     savedScrollOffset: Int,
-    onScrollStateChanged: (index: Int, offset: Int) -> Unit
+    onScrollStateChanged: (index: Int, offset: Int) -> Unit,
+    sourceNameMap: Map<String, String> = emptyMap()
 ) {
     val gridState = rememberLazyGridState()
     var lastTriggeredSize by remember { mutableIntStateOf(0) }
@@ -266,7 +272,8 @@ private fun PhoneModeGrid(
         itemsIndexed(videos) { index, video ->
             VideoCard(
                 video = video,
-                onClick = { onVideoClick(video.sourceId, video.id) }
+                onClick = { onVideoClick(video.sourceId, video.id) },
+                sourceName = sourceNameMap[video.sourceId]
             )
         }
     }
@@ -276,7 +283,8 @@ private fun PhoneModeGrid(
 fun VideoCard(
     video: Video,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    sourceName: String? = null
 ) {
     Card(
         modifier = modifier.width(160.dp),
@@ -323,6 +331,27 @@ fun VideoCard(
                     )
                 }
             }
+
+            // Source name at bottom of image
+            if (!sourceName.isNullOrEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .padding(horizontal = 6.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = sourceName,
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
         }
 
         // Title
@@ -331,7 +360,7 @@ fun VideoCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp)
-                .padding(8.dp),
+                .padding(horizontal = 6.dp, vertical = 6.dp),
             style = MaterialTheme.typography.labelMedium,
             maxLines = 2,
             overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,

@@ -23,7 +23,8 @@ fun TVVideoGrid(
     onLoadMore: () -> Unit = {},
     isLoadingMore: Boolean = false,
     hasMore: Boolean = true,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    sourceNameMap: Map<String, String> = emptyMap()
 ) {
     val gridState = rememberLazyGridState()
     
@@ -66,7 +67,8 @@ fun TVVideoGrid(
         items(videos) { video ->
             TVVideoCard(
                 video = video,
-                onClick = { onVideoClick(video.sourceId, video.id) }
+                onClick = { onVideoClick(video.sourceId, video.id) },
+                sourceName = sourceNameMap[video.sourceId]
             )
         }
     }

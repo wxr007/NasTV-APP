@@ -45,7 +45,8 @@ fun TVVideoCard(
     video: Video,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    shouldAutoFocus: Boolean = false
+    shouldAutoFocus: Boolean = false,
+    sourceName: String? = null
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
@@ -129,6 +130,27 @@ fun TVVideoCard(
                     )
                 }
             }
+
+            // Source name at bottom of image
+            if (!sourceName.isNullOrEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .background(Color.Black.copy(alpha = 0.5f))
+                        .padding(horizontal = 6.dp, vertical = 3.dp)
+                ) {
+                    Text(
+                        text = sourceName,
+                        color = Color.White.copy(alpha = 0.9f),
+                        fontSize = 11.sp,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
         }
 
         // Title
@@ -136,11 +158,12 @@ fun TVVideoCard(
             text = video.name,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp)
+                .height(52.dp)
                 .background(MaterialTheme.colorScheme.surface)
-                .padding(8.dp),
+                .padding(horizontal = 6.dp, vertical = 6.dp),
             style = MaterialTheme.typography.labelLarge,
-            fontSize = 16.sp,
+            fontSize = 15.sp,
+            lineHeight = 18.sp,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center

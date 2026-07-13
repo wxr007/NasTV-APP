@@ -34,6 +34,7 @@ fun FavoritesScreen(
     val favorites by viewModel.favorites.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
+    val sourceNameMap by viewModel.sourceNameMap.collectAsState()
 
     // TV端遥控器退出键返回
     BackHandler { onNavigateBack() }
@@ -159,7 +160,8 @@ fun FavoritesScreen(
                                             onNavigateToPlay(entry.sourceId, entry.videoId)
                                         },
                                         modifier = Modifier.weight(1f),
-                                        shouldAutoFocus = videoIndex == focusTargetIndex
+                                        shouldAutoFocus = videoIndex == focusTargetIndex,
+                                        sourceName = sourceNameMap[entry.sourceId]
                                     )
                                 }
                                 // 填充剩余空间
@@ -193,7 +195,8 @@ fun FavoritesScreen(
                             )
                             VideoCard(
                                 video = video,
-                                onClick = { onNavigateToPlay(entry.sourceId, entry.videoId) }
+                                onClick = { onNavigateToPlay(entry.sourceId, entry.videoId) },
+                                sourceName = sourceNameMap[entry.sourceId]
                             )
                         }
                     }

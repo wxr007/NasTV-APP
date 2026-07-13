@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.nastv.data.model.CachedVideo
 import com.nastv.data.repository.Result
+import com.nastv.data.repository.SourceRepository
 import com.nastv.data.repository.UserDataRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,8 +15,30 @@ import javax.inject.Inject
 
 @HiltViewModel
 class CacheViewModel @Inject constructor(
-    private val userDataRepository: UserDataRepository
+    private val userDataRepository: UserDataRepository,
+    private val sourceRepository: SourceRepository
 ) : ViewModel() {
+
+    private val _sourceNameMap = MutableStateFlow<Map<String, String>>(emptyMap())
+    val sourceNameMap: StateFlow<Map<String, String>> = _sourceNameMap.asStateFlow()
+
+    init {
+        loadSources()
+    }
+
+    private fun loadSources() {
+        viewModelScope.launch {
+            when (val result = sourceRepository.getSources()) {
+                is Result.Success -> {
+                    _sourceNameMap.value = result.data.associate { it.id to it.name }
+                }
+                is Result.Error -> {
+                    // Silently fail
+                }
+                else -> {}
+            }
+        }
+    }
 
     private val _videos = MutableStateFlow<List<CachedVideo>>(emptyList())
     val videos: StateFlow<List<CachedVideo>> = _videos.asStateFlow()

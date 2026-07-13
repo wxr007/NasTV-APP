@@ -34,6 +34,7 @@ fun HistoryScreen(
     val history by viewModel.history.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
+    val sourceNameMap by viewModel.sourceNameMap.collectAsState()
 
     // TV端遥控器退出键返回
     BackHandler { onNavigateBack() }
@@ -159,7 +160,8 @@ fun HistoryScreen(
                                             onNavigateToPlay(item.sourceId, item.videoId)
                                         },
                                         modifier = Modifier.weight(1f),
-                                        shouldAutoFocus = videoIndex == focusTargetIndex
+                                        shouldAutoFocus = videoIndex == focusTargetIndex,
+                                        sourceName = sourceNameMap[item.sourceId]
                                     )
                                 }
                                 // 填充剩余空间
@@ -193,7 +195,8 @@ fun HistoryScreen(
                             )
                             VideoCard(
                                 video = video,
-                                onClick = { onNavigateToPlay(item.sourceId, item.videoId) }
+                                onClick = { onNavigateToPlay(item.sourceId, item.videoId) },
+                                sourceName = sourceNameMap[item.sourceId]
                             )
                         }
                     }

@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.nastv.data.model.Video
 import com.nastv.data.repository.Result
 import com.nastv.data.repository.SearchRepository
+import com.nastv.data.repository.SourceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -16,8 +17,30 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SearchViewModel @Inject constructor(
-    private val searchRepository: SearchRepository
+    private val searchRepository: SearchRepository,
+    private val sourceRepository: SourceRepository
 ) : ViewModel() {
+
+    private val _sourceNameMap = MutableStateFlow<Map<String, String>>(emptyMap())
+    val sourceNameMap: StateFlow<Map<String, String>> = _sourceNameMap.asStateFlow()
+
+    init {
+        loadSources()
+    }
+
+    private fun loadSources() {
+        viewModelScope.launch {
+            when (val result = sourceRepository.getSources()) {
+                is Result.Success -> {
+                    _sourceNameMap.value = result.data.associate { it.id to it.name }
+                }
+                is Result.Error -> {
+                    // Silently fail
+                }
+                else -> {}
+            }
+        }
+    }
 
     private val _searchResults = MutableStateFlow<List<Video>>(emptyList())
     val searchResults: StateFlow<List<Video>> = _searchResults.asStateFlow()
