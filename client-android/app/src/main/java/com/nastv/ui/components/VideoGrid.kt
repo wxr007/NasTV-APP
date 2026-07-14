@@ -1,6 +1,8 @@
 package com.nastv.ui.components
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
@@ -279,6 +281,7 @@ private fun PhoneModeGrid(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun VideoCard(
     video: Video,
@@ -288,14 +291,17 @@ fun VideoCard(
     sourceName: String? = null
 ) {
     Card(
-        modifier = modifier.width(160.dp),
+        modifier = modifier
+            .width(160.dp)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = { onLongClick?.invoke() }
+            ),
         shape = RoundedCornerShape(8.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
-        ),
-        onClick = onClick,
-        onLongClick = onLongClick
+        )
     ) {
         Box {
             // Poster (vertical, 2:3 aspect ratio)

@@ -18,6 +18,8 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Fullscreen
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SwapVert
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -99,13 +101,13 @@ fun PhonePlayContent(
 
             Box(modifier = Modifier.fillMaxSize().then(gestureModifier))
 
-            seekIndicatorText?.let { text ->
+            if (!seekIndicatorText.isNullOrBlank()) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = text,
+                        text = seekIndicatorText ?: "",
                         color = Color.White,
                         fontSize = 18.sp,
                         fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
@@ -148,6 +150,26 @@ fun PhonePlayContent(
                             text = formatSpeed(downloadSpeed),
                             color = Color.White,
                             fontSize = 14.sp
+                        )
+                    }
+                }
+            }
+
+            // 居中播放/暂停按钮（TV样式）
+            if (!isBuffering) {
+                if (!isPlaying) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .size(80.dp)
+                            .background(Color.Black.copy(alpha = 0.4f), CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = "",
+                            tint = Color.White.copy(alpha = 0.8f),
+                            modifier = Modifier.size(48.dp)
                         )
                     }
                 }

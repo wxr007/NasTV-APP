@@ -396,10 +396,10 @@ fun PlayScreen(
                                         else -> {
                                             if (exoPlayer.isPlaying) {
                                                 exoPlayer.pause()
-                                                seekIndicatorText = "暂停"
+                                                seekIndicatorText = ""
                                             } else {
                                                 exoPlayer.play()
-                                                seekIndicatorText = "播放"
+                                                seekIndicatorText = ""
                                             }
                                         }
                                     }
