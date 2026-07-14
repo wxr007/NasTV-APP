@@ -62,6 +62,17 @@ class UserDataRepository @Inject constructor(
         }
     }
 
+    suspend fun deletePlayHistory(sourceId: String, videoId: String): Result<Unit> {
+        return safeApiCall {
+            val response = userDataApi.deletePlayHistory(sourceId, videoId)
+            if (response.isSuccess) {
+                Unit
+            } else {
+                throw ApiException(response.message ?: "Failed to delete play history")
+            }
+        }
+    }
+
     suspend fun updatePlayProgress(
         sourceId: String,
         videoId: String,

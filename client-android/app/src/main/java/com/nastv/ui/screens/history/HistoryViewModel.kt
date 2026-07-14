@@ -74,4 +74,20 @@ class HistoryViewModel @Inject constructor(
             }
         }
     }
+
+    fun deleteHistory(sourceId: String, videoId: String) {
+        viewModelScope.launch {
+            when (val result = userDataRepository.deletePlayHistory(sourceId, videoId)) {
+                is Result.Success -> {
+                    _history.value = _history.value.filterNot {
+                        it.sourceId == sourceId && it.videoId == videoId
+                    }
+                }
+                is Result.Error -> {
+                    _errorMessage.value = result.exception.message
+                }
+                else -> {}
+            }
+        }
+    }
 }

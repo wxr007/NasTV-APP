@@ -57,6 +57,16 @@ interface UserDataApi {
     ): ApiResponse<Map<String, Any?>>
 
     /**
+     * DELETE /api/play-history/:sourceId/:videoId
+     * Remove a video from play history (auth required).
+     */
+    @HTTP(method = "DELETE", path = "api/play-history/{sourceId}/{videoId}", hasBody = true)
+    suspend fun deletePlayHistory(
+        @Path("sourceId") sourceId: String,
+        @Path("videoId") videoId: String
+    ): ApiResponse<Map<String, Any?>>
+
+    /**
      * GET /api/play-progress/:sourceId/:videoId
      * Get play progress for a specific video (auth required).
      */

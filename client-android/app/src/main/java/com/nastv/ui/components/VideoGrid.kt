@@ -283,6 +283,7 @@ private fun PhoneModeGrid(
 fun VideoCard(
     video: Video,
     onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     sourceName: String? = null
 ) {
@@ -293,7 +294,8 @@ fun VideoCard(
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surface
         ),
-        onClick = onClick
+        onClick = onClick,
+        onLongClick = onLongClick
     ) {
         Box {
             // Poster (vertical, 2:3 aspect ratio)
@@ -315,7 +317,7 @@ fun VideoCard(
             )
 
             // Remark badge at top-left
-            video.remark?.let { remark ->
+            video.remark?.takeIf { it.isNotBlank() }?.let { remark ->
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopStart)

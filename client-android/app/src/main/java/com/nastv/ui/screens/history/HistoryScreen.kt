@@ -36,6 +36,34 @@ fun HistoryScreen(
     val errorMessage by viewModel.errorMessage.collectAsState()
     val sourceNameMap by viewModel.sourceNameMap.collectAsState()
 
+    // 删除确认对话框
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var pendingDeleteItem by remember { mutableStateOf<com.nastv.data.model.PlayHistory?>(null) }
+
+    if (showDeleteDialog && pendingDeleteItem != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = { Text("删除播放记录") },
+            text = { Text("确定要删除「${pendingDeleteItem!!.name}」的播放记录吗？") },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteHistory(pendingDeleteItem!!.sourceId, pendingDeleteItem!!.videoId)
+                        showDeleteDialog = false
+                        pendingDeleteItem = null
+                    }
+                ) {
+                    Text("确定")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteDialog = false }) {
+                    Text("取消")
+                }
+            }
+        )
+    }
+
     // TV端遥控器退出键返回
     BackHandler { onNavigateBack() }
 
@@ -159,6 +187,10 @@ fun HistoryScreen(
                                             viewModel.saveScrollState(videoIndex)
                                             onNavigateToPlay(item.sourceId, item.videoId)
                                         },
+                                        onLongClick = {
+                                            pendingDeleteItem = item
+                                            showDeleteDialog = true
+                                        },
                                         modifier = Modifier.weight(1f),
                                         shouldAutoFocus = videoIndex == focusTargetIndex,
                                         sourceName = sourceNameMap[item.sourceId]
@@ -196,6 +228,10 @@ fun HistoryScreen(
                             VideoCard(
                                 video = video,
                                 onClick = { onNavigateToPlay(item.sourceId, item.videoId) },
+                                onLongClick = {
+                                    pendingDeleteItem = item
+                                    showDeleteDialog = true
+                                },
                                 sourceName = sourceNameMap[item.sourceId]
                             )
                         }

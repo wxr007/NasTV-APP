@@ -44,6 +44,7 @@ import com.nastv.utils.ImageUrlHelper
 fun TVVideoCard(
     video: Video,
     onClick: () -> Unit,
+    onLongClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     shouldAutoFocus: Boolean = false,
     sourceName: String? = null
@@ -77,6 +78,7 @@ fun TVVideoCard(
             }
             .clickable(
                 onClick = onClick,
+                onLongClick = onLongClick,
                 indication = null,
                 interactionSource = remember { MutableInteractionSource() }
             )
@@ -111,7 +113,7 @@ fun TVVideoCard(
             )
 
             // Remark badge at top-left
-            video.remark?.let { remark ->
+            video.remark?.takeIf { it.isNotBlank() }?.let { remark ->
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopStart)
