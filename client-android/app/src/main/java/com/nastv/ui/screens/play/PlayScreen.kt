@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.FullscreenExit
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -209,7 +210,12 @@ fun PlayScreen(
                             }
                         }
 
-                        val dataSourceFactory = DefaultDataSource.Factory(context)
+                        val httpDataSourceFactory = androidx.media3.datasource.DefaultHttpDataSource.Factory()
+                            .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                            .setAllowCrossProtocolRedirects(true)
+                            .setDefaultRequestProperties(mapOf("Referer" to "https://v.didibo2.com/"))
+
+                        val dataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
                             .setTransferListener(transferListener)
 
                         val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
@@ -424,14 +430,32 @@ fun PlayScreen(
                             )
                             Box(modifier = Modifier.fillMaxSize().then(gestureModifier))
 
-                            seekIndicatorText?.let { text ->
+                            if (!seekIndicatorText.isNullOrBlank()) {
                                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                     Text(
-                                        text = text, color = Color.White, fontSize = 20.sp,
+                                        text = seekIndicatorText ?: "", color = Color.White, fontSize = 20.sp,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier
                                             .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
                                             .padding(horizontal = 16.dp, vertical = 8.dp)
+                                    )
+                                }
+                            }
+
+                            // 全屏居中播放按钮
+                            if (!isBuffering && !isPlaying) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.Center)
+                                        .size(80.dp)
+                                        .background(Color.Black.copy(alpha = 0.4f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.PlayArrow,
+                                        contentDescription = "",
+                                        tint = Color.White.copy(alpha = 0.8f),
+                                        modifier = Modifier.size(48.dp)
                                     )
                                 }
                             }

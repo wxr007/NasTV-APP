@@ -23,6 +23,7 @@ import com.nastv.data.local.PreferencesRepository
 import com.nastv.data.repository.AccountRepository
 import com.nastv.data.repository.Result
 import com.nastv.data.repository.ServerRepository
+import com.nastv.utils.ImageUrlHelper
 import com.nastv.ui.screens.cache.CacheScreen
 import com.nastv.ui.screens.favorites.FavoritesScreen
 import com.nastv.ui.screens.history.HistoryScreen

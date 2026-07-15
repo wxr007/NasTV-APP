@@ -9,6 +9,7 @@ import com.nastv.data.model.Server
 import com.nastv.data.repository.AccountRepository
 import com.nastv.data.repository.Result
 import com.nastv.data.repository.ServerRepository
+import com.nastv.utils.ImageUrlHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -68,6 +69,8 @@ class LoginViewModel @Inject constructor(
             val serverData = _server.value
             if (serverData != null) {
                 preferencesRepository.saveServerUrl(serverData.url)
+                // 同步更新ImageUrlHelper，确保登录后图片能正确加载
+                ImageUrlHelper.setBaseUrl(serverData.url)
             }
 
             when (val result = accountRepository.loginWithAccount(account)) {
