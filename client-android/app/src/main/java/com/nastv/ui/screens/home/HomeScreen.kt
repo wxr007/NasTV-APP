@@ -4,7 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -86,23 +90,6 @@ fun HomeScreen(
                             contentDescription = "Select source",
                             tint = if (isTv) Color(0xFFFFD700) else Color.Unspecified
                         )
-                    }
-                    DropdownMenu(
-                        expanded = sourceDropdownExpanded,
-                        onDismissRequest = { sourceDropdownExpanded = false }
-                    ) {
-                        sources.forEach { source ->
-                            DropdownMenuItem(
-                                text = { Text(source.name) },
-                                onClick = {
-                                    // 避免重复选择同一站源导致分类消失
-                                    if (source.id != selectedSource?.id) {
-                                        viewModel.selectSource(source)
-                                    }
-                                    sourceDropdownExpanded = false
-                                }
-                            )
-                        }
                     }
                 }
             },
@@ -231,6 +218,60 @@ fun HomeScreen(
                 )
             }
         }
+    }
+
+    // 站源选择弹窗
+    if (sourceDropdownExpanded) {
+        AlertDialog(
+            onDismissRequest = { sourceDropdownExpanded = false },
+            title = { Text("选择源") },
+            text = {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(4),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = 400.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(sources) { source ->
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (source.id == selectedSource?.id)
+                                MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
+                            else
+                                MaterialTheme.colorScheme.surfaceVariant,
+                            border = if (source.id == selectedSource?.id)
+                                BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary)
+                            else null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    if (source.id != selectedSource?.id) {
+                                        viewModel.selectSource(source)
+                                    }
+                                    sourceDropdownExpanded = false
+                                }
+                        ) {
+                            Text(
+                                text = source.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (source.id == selectedSource?.id)
+                                    MaterialTheme.colorScheme.primary
+                                else
+                                    MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp)
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { sourceDropdownExpanded = false }) {
+                    Text("取消")
+                }
+            }
+        )
     }
 }
 

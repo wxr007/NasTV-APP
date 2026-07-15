@@ -8,6 +8,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -186,9 +189,16 @@ fun TVHomeScreen(
                 onDismissRequest = { sourceDropdownExpanded = false },
                 title = { Text("选择站源") },
                 text = {
-                    LazyColumn {
+                    LazyVerticalGrid(
+                        columns = GridCells.Fixed(4),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 400.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
                         items(sources) { source ->
-                            Row(
+                            Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clickable {
@@ -197,18 +207,17 @@ fun TVHomeScreen(
                                         }
                                         sourceDropdownExpanded = false
                                     }
-                                    .padding(vertical = 12.dp, horizontal = 8.dp)
                                     .background(
-                                        if (source.id == selectedSource?.id) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
-                                        RoundedCornerShape(4.dp)
+                                        if (source.id == selectedSource?.id) Color(0xFFFFD700).copy(alpha = 0.2f) else Color(0xFF2A2A2A),
+                                        RoundedCornerShape(8.dp)
                                     )
-                                    .padding(vertical = 8.dp, horizontal = 12.dp),
-                                verticalAlignment = Alignment.CenterVertically
+                                    .padding(vertical = 12.dp, horizontal = 8.dp),
+                                contentAlignment = Alignment.Center
                             ) {
                                 Text(
                                     text = source.name,
                                     color = if (source.id == selectedSource?.id) Color(0xFFFFD700) else Color.White,
-                                    style = MaterialTheme.typography.bodyLarge
+                                    style = MaterialTheme.typography.bodyMedium
                                 )
                             }
                         }
