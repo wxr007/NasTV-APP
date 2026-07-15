@@ -29,6 +29,9 @@ class SettingsViewModel @Inject constructor(
     private val _themeMode = MutableStateFlow("system") // "system", "dark", "light"
     val themeMode: StateFlow<String> = _themeMode.asStateFlow()
 
+    private val _adBlockEnabled = MutableStateFlow(false)
+    val adBlockEnabled: StateFlow<Boolean> = _adBlockEnabled.asStateFlow()
+
     private val _username = MutableStateFlow<String?>(null)
     val username: StateFlow<String?> = _username.asStateFlow()
 
@@ -93,6 +96,13 @@ class SettingsViewModel @Inject constructor(
         _themeMode.value = mode
         viewModelScope.launch {
             preferencesRepository.saveThemeMode(mode)
+        }
+    }
+
+    fun setAdBlockEnabled(enabled: Boolean) {
+        _adBlockEnabled.value = enabled
+        viewModelScope.launch {
+            preferencesRepository.saveAdBlockEnabled(enabled)
         }
     }
 

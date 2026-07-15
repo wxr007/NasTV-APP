@@ -15,6 +15,7 @@ object Constants {
     const val PREF_USER_ROLE = "user_role"
     const val PREF_BUFFER_MIN_DURATION = "buffer_min_duration"
     const val PREF_BUFFER_MAX_DURATION = "buffer_max_duration"
+    const val PREF_AD_BLOCK_ENABLED = "ad_block_enabled"
 
     // Default server URL (placeholder, replaced by interceptor at runtime)
     const val DEFAULT_BASE_URL = "http://placeholder/"

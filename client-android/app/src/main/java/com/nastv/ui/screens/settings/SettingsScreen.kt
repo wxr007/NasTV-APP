@@ -33,6 +33,7 @@ fun SettingsScreen(
     val seekDuration by viewModel.seekDuration.collectAsState()
     val forceTvMode by viewModel.forceTvMode.collectAsState()
     val themeMode by viewModel.themeMode.collectAsState()
+    val adBlockEnabled by viewModel.adBlockEnabled.collectAsState()
     val username by viewModel.username.collectAsState()
     val userRole by viewModel.userRole.collectAsState()
     val serverName by viewModel.serverName.collectAsState()
@@ -226,6 +227,40 @@ fun SettingsScreen(
             ) {
                 Text("5秒", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("30秒", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+
+            Spacer(modifier = Modifier.height(if (isTv) 48.dp else 24.dp))
+
+            Text(
+                text = "图片设置",
+                style = if (isTv) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleLarge
+            )
+
+            Spacer(modifier = Modifier.height(if (isTv) 16.dp else 8.dp))
+
+            // 广告屏蔽开关
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = if (isTv) 16.dp else 8.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "广告屏蔽",
+                        style = if (isTv) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge
+                    )
+                    Text(
+                        text = if (adBlockEnabled) "播放时过滤 m3u8 中的广告片段" else "关闭",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = adBlockEnabled,
+                    onCheckedChange = { viewModel.setAdBlockEnabled(it) }
+                )
             }
 
             Spacer(modifier = Modifier.height(if (isTv) 48.dp else 24.dp))

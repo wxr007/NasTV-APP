@@ -43,4 +43,15 @@ class PlayRepository @Inject constructor(
             }
         }
     }
+
+    suspend fun getAdBlockStrings(): Result<List<String>> {
+        return safeApiCall {
+            val response = playApi.getAdBlockStrings()
+            if (response.isSuccess && response.data != null) {
+                response.data.map { it.string }
+            } else {
+                throw ApiException(response.message ?: "Failed to get ad block strings")
+            }
+        }
+    }
 }

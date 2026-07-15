@@ -1,5 +1,4 @@
 package com.nastv.di
-
 import com.nastv.data.api.AuthApi
 import com.nastv.data.api.PlayApi
 import com.nastv.data.api.SearchApi

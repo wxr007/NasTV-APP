@@ -34,6 +34,7 @@ class PreferencesRepository @Inject constructor(
         val USER_ROLE_KEY = stringPreferencesKey(Constants.PREF_USER_ROLE)
         val BUFFER_MIN_DURATION_KEY = intPreferencesKey(Constants.PREF_BUFFER_MIN_DURATION)
         val BUFFER_MAX_DURATION_KEY = intPreferencesKey(Constants.PREF_BUFFER_MAX_DURATION)
+        val AD_BLOCK_ENABLED_KEY = booleanPreferencesKey(Constants.PREF_AD_BLOCK_ENABLED)
         
         // 新增：服务器和账号存储
         val SERVERS_KEY = stringPreferencesKey("servers_json")
@@ -80,6 +81,10 @@ class PreferencesRepository @Inject constructor(
 
     val bufferMaxDurationFlow: Flow<Int> = dataStore.data.map { preferences ->
         preferences[BUFFER_MAX_DURATION_KEY] ?: Constants.DEFAULT_BUFFER_MAX_DURATION
+    }
+
+    val adBlockEnabledFlow: Flow<Boolean> = dataStore.data.map { preferences ->
+        preferences[AD_BLOCK_ENABLED_KEY] ?: false
     }
 
     suspend fun getServerUrl(): String {
@@ -149,6 +154,12 @@ class PreferencesRepository @Inject constructor(
     suspend fun saveBufferMaxDuration(seconds: Int) {
         dataStore.edit { preferences ->
             preferences[BUFFER_MAX_DURATION_KEY] = seconds
+        }
+    }
+
+    suspend fun saveAdBlockEnabled(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[AD_BLOCK_ENABLED_KEY] = enabled
         }
     }
 

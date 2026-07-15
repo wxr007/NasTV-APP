@@ -70,11 +70,37 @@ class PlayViewModel @Inject constructor(
     private val _sourceName = MutableStateFlow<String?>(null)
     val sourceName: StateFlow<String?> = _sourceName.asStateFlow()
 
+    private val _adBlockEnabled = MutableStateFlow(false)
+    val adBlockEnabled: StateFlow<Boolean> = _adBlockEnabled.asStateFlow()
+
+    private val _adBlockStrings = MutableStateFlow<List<String>>(emptyList())
+    val adBlockStrings: StateFlow<List<String>> = _adBlockStrings.asStateFlow()
+
     init {
         viewModelScope.launch {
             _seekDuration.value = preferencesRepository.seekDurationFlow.first()
             _bufferMaxDuration.value = preferencesRepository.bufferMaxDurationFlow.first()
             _bufferMinDuration.value = preferencesRepository.bufferMinDurationFlow.first()
+            _adBlockEnabled.value = preferencesRepository.adBlockEnabledFlow.first()
+        }
+        loadAdBlockStrings()
+    }
+
+    fun isAdBlockEnabled(): Boolean = _adBlockEnabled.value
+
+    fun getAdBlockStrings(): List<String> = _adBlockStrings.value
+
+    fun loadAdBlockStrings() {
+        viewModelScope.launch {
+            when (val result = playRepository.getAdBlockStrings()) {
+                is Result.Success -> {
+                    _adBlockStrings.value = result.data
+                }
+                is Result.Error -> {
+                    android.util.Log.e("PlayViewModel", "获取广告屏蔽字符串失败", result.exception)
+                }
+                else -> {}
+            }
         }
     }
 

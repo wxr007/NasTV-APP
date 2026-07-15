@@ -46,6 +46,7 @@ import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
 import androidx.media3.ui.PlayerView
 import com.nastv.MainActivity
+import com.nastv.data.repository.AdBlockDataSourceFactory
 import com.nastv.ui.theme.LocalIsTv
 import kotlinx.coroutines.delay
 
@@ -73,6 +74,7 @@ fun PlayScreen(
     val bufferMaxDuration by viewModel.bufferMaxDuration.collectAsState()
     val bufferMinDuration by viewModel.bufferMinDuration.collectAsState()
     val sourceName by viewModel.sourceName.collectAsState()
+    val adBlockEnabled by viewModel.adBlockEnabled.collectAsState()
 
     // Player state for custom controls
     var isPlaying by remember { mutableStateOf(false) }
@@ -85,6 +87,9 @@ fun PlayScreen(
     var isBuffering by remember { mutableStateOf(false) }
     var downloadSpeed by remember { mutableStateOf(0L) }
     var switchingEpisode by remember { mutableStateOf(false) }
+
+    // Video portrait/landscape detection
+    var isPortraitVideo by remember { mutableStateOf(false) }
 
     // Seek indicator
     var seekIndicatorText by remember { mutableStateOf<String?>(null) }
@@ -99,10 +104,15 @@ fun PlayScreen(
     }
 
     // Handle fullscreen orientation & system bars
-    LaunchedEffect(isFullscreen, isTv) {
+    LaunchedEffect(isFullscreen, isTv, isPortraitVideo) {
         activity?.let { act ->
-            if (isFullscreen) {
+            if (isFullscreen && !isPortraitVideo) {
                 act.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                val controller = WindowInsetsControllerCompat(act.window, act.window.decorView)
+                controller.hide(WindowInsetsCompat.Type.systemBars())
+                controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            } else if (isFullscreen && isPortraitVideo) {
+                // 竖屏视频全屏时不强制旋转，只隐藏系统栏
                 val controller = WindowInsetsControllerCompat(act.window, act.window.decorView)
                 controller.hide(WindowInsetsCompat.Type.systemBars())
                 controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -210,16 +220,6 @@ fun PlayScreen(
                             }
                         }
 
-                        val httpDataSourceFactory = androidx.media3.datasource.DefaultHttpDataSource.Factory()
-                            .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-                            .setAllowCrossProtocolRedirects(true)
-                            .setDefaultRequestProperties(mapOf("Referer" to "https://v.didibo2.com/"))
-
-                        val dataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
-                            .setTransferListener(transferListener)
-
-                        val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
-
                         val loadControl = DefaultLoadControl.Builder()
                             .setBufferDurationsMs(
                                 50 * 1000,  // minBuffer (固定50秒)
@@ -234,7 +234,27 @@ fun PlayScreen(
                         val savedPositionForRestore = remember(bufferMaxDuration) {
                             exoPlayerRef.value?.currentPosition ?: 0L
                         }
-                        val exoPlayer = remember(bufferMaxDuration) {
+                        val exoPlayer = remember(bufferMaxDuration, adBlockEnabled) {
+                            // 每次重建时重新创建 DataSource 工厂，确保广告屏蔽设置生效
+                            val httpDataSourceFactory = androidx.media3.datasource.DefaultHttpDataSource.Factory()
+                                .setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
+                                .setAllowCrossProtocolRedirects(true)
+                                .setDefaultRequestProperties(mapOf("Referer" to "https://v.didibo2.com/"))
+
+                            val finalHttpFactory = if (adBlockEnabled) {
+                                AdBlockDataSourceFactory(
+                                    baseFactory = httpDataSourceFactory,
+                                    isEnabled = { viewModel.isAdBlockEnabled() },
+                                    adBlockStrings = { viewModel.getAdBlockStrings() }
+                                )
+                            } else {
+                                httpDataSourceFactory
+                            }
+
+                            val dataSourceFactory = DefaultDataSource.Factory(context, finalHttpFactory)
+                                .setTransferListener(transferListener)
+
+                            val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
                             val oldPlayer = exoPlayerRef.value
                             // 保存旧播放器的播放状态
                             val savedIsPlaying = oldPlayer?.isPlaying ?: true
@@ -266,6 +286,9 @@ fun PlayScreen(
                                 }
                                 override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
                                     android.util.Log.e("ExoPlayer", "onPlayerError: ${error.errorCodeName}, ${error.message}", error)
+                                }
+                                override fun onVideoSizeChanged(videoSize: androidx.media3.common.VideoSize) {
+                                    isPortraitVideo = videoSize.width > 0 && videoSize.height > 0 && videoSize.width < videoSize.height
                                 }
                             })
                             exoPlayerRef.value = player
