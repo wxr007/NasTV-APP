@@ -227,7 +227,7 @@ fun HomeScreen(
             title = { Text("选择源") },
             text = {
                 LazyVerticalGrid(
-                    columns = GridCells.Fixed(4),
+                    columns = GridCells.Fixed(2),
                     modifier = Modifier
                         .fillMaxWidth()
                         .heightIn(max = 400.dp),
