@@ -346,9 +346,9 @@ fun TvPlayContent(
                                 else 0f,
                             bufferedValue = if (totalDuration > 0) bufferedPosition.toFloat() / totalDuration.toFloat() else 0f,
                             onValueChange = onSeekChange,
-                            onValueChangeFinished = {
+                            onValueChangeFinished = { v ->
                                 onSeekStart()
-                                onSeekFinished((seekPosition * totalDuration).toLong())
+                                onSeekFinished((v * totalDuration).toLong())
                             },
                             modifier = Modifier
                                 .fillMaxWidth()
@@ -528,17 +528,17 @@ fun TvPlayContent(
                                         else 0f,
                                     bufferedValue = if (totalDuration > 0) bufferedPosition.toFloat() / totalDuration.toFloat() else 0f,
                                     onValueChange = onSeekChange,
-                                    onValueChangeFinished = {
+                                    onValueChangeFinished = { v ->
                                         onSeekStart()
-                                        onSeekFinished((seekPosition * totalDuration).toLong())
+                                        onSeekFinished((v * totalDuration).toLong())
                                     },
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .focusProperties { canFocus = false },
-                                    playedColor = Color.White,
-                                    bufferedColor = Color(0xFF4CAF50),
-                                    unplayedColor = Color.White.copy(alpha = 0.3f),
-                                    thumbColor = Color.White
+                                    playedColor = Color(0xFFFF4081),
+                                    bufferedColor = Color(0xFF81C784),
+                                    unplayedColor = Color.Gray.copy(alpha = 0.3f),
+                                    thumbColor = Color(0xFFFF4081)
                                 )
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),

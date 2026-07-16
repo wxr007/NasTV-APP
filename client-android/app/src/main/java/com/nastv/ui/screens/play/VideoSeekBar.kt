@@ -26,7 +26,7 @@ fun VideoSeekBar(
     value: Float,
     bufferedValue: Float,
     onValueChange: (Float) -> Unit,
-    onValueChangeFinished: () -> Unit,
+    onValueChangeFinished: (Float) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     trackHeight: Dp = 6.dp,
@@ -50,22 +50,25 @@ fun VideoSeekBar(
                     detectTapGestures { offset ->
                         val newValue = (offset.x / size.width).coerceIn(0f, 1f)
                         currentOnValueChange(newValue)
-                        currentOnValueChangeFinished()
+                        currentOnValueChangeFinished(newValue)
                     }
                 }
                 .pointerInput(enabled) {
                     if (!enabled) return@pointerInput
+                    var lastDragValue = value
                     detectHorizontalDragGestures(
                         onDragStart = { offset ->
                             val newValue = (offset.x / size.width).coerceIn(0f, 1f)
                             currentOnValueChange(newValue)
+                            lastDragValue = newValue
                         },
                         onHorizontalDrag = { change, _ ->
                             val newValue = (change.position.x / size.width).coerceIn(0f, 1f)
                             currentOnValueChange(newValue)
+                            lastDragValue = newValue
                         },
                         onDragEnd = {
-                            currentOnValueChangeFinished()
+                            currentOnValueChangeFinished(lastDragValue)
                         }
                     )
                 }

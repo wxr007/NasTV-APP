@@ -553,16 +553,16 @@ fun PlayScreen(
                                             else if (totalDuration > 0) currentPosition.toFloat() / totalDuration.toFloat() else 0f,
                                         bufferedValue = if (totalDuration > 0) bufferedPosition.toFloat() / totalDuration.toFloat() else 0f,
                                         onValueChange = { seekPosition = it; isSeeking = true },
-                                        onValueChangeFinished = {
-                                            exoPlayer.seekTo((seekPosition * totalDuration).toLong())
-                                            currentPosition = (seekPosition * totalDuration).toLong()
+                                        onValueChangeFinished = { v ->
+                                            exoPlayer.seekTo((v * totalDuration).toLong())
+                                            currentPosition = (v * totalDuration).toLong()
                                             isSeeking = false
                                         },
                                         modifier = Modifier.fillMaxWidth(),
-                                        playedColor = Color.White,
-                                        bufferedColor = Color(0xFF4CAF50),
-                                        unplayedColor = Color.White.copy(alpha = 0.3f),
-                                        thumbColor = Color.White
+                                        playedColor = Color(0xFFFF4081),
+                                        bufferedColor = Color(0xFF81C784),
+                                        unplayedColor = Color.Gray.copy(alpha = 0.3f),
+                                        thumbColor = Color(0xFFFF4081)
                                     )
                                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                                         Text(text = formatTime(currentPosition), style = MaterialTheme.typography.labelMedium, color = Color.White)

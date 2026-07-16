@@ -155,7 +155,7 @@ fun PhonePlayContent(
                 }
             }
 
-            // 居中播放/暂停按钮（TV样式）
+            // 居中播放/暂停按钮
             if (!isBuffering) {
                 if (!isPlaying) {
                     Box(
@@ -174,56 +174,62 @@ fun PhonePlayContent(
                     }
                 }
             }
+        }
 
-            if (controlsVisible) {
+        // 进度条区域（播放器下方，始终可见）
+        val bgColor = MaterialTheme.colorScheme.background
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(bgColor)
+                .padding(horizontal = 16.dp, vertical = 8.dp)
+        ) {
+            val pinkColor = Color(0xFFFF4081)
+            VideoSeekBar(
+                value = if (isSeeking) seekPosition
+                    else if (totalDuration > 0) currentPosition.toFloat() / totalDuration.toFloat()
+                    else 0f,
+                bufferedValue = if (totalDuration > 0) bufferedPosition.toFloat() / totalDuration.toFloat() else 0f,
+                onValueChange = {
+                    onSeekStart()
+                    onSeekChange(it)
+                },
+                onValueChangeFinished = { v ->
+                    onSeekFinished((v * totalDuration).toLong())
+                },
+                modifier = Modifier.fillMaxWidth(),
+                playedColor = pinkColor,
+                bufferedColor = Color(0xFF81C784),
+                unplayedColor = Color.Gray.copy(alpha = 0.3f),
+                thumbColor = pinkColor
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = formatTime(currentPosition),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Text(
+                    text = formatTime(totalDuration),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
                 IconButton(
                     onClick = { onToggleFullscreen() },
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                        .size(36.dp)
-                        .background(Color.Black.copy(alpha = 0.4f), CircleShape)
+                    modifier = Modifier.size(32.dp)
                 ) {
                     Icon(
                         Icons.Default.Fullscreen,
                         contentDescription = "全屏",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(18.dp)
                     )
-                }
-
-                Column(
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
-                ) {
-                    VideoSeekBar(
-                        value = if (isSeeking) seekPosition
-                            else if (totalDuration > 0) currentPosition.toFloat() / totalDuration.toFloat()
-                            else 0f,
-                        bufferedValue = if (totalDuration > 0) bufferedPosition.toFloat() / totalDuration.toFloat() else 0f,
-                        onValueChange = {
-                            onSeekStart()
-                            onSeekChange(it)
-                        },
-                        onValueChangeFinished = {
-                            onSeekFinished((seekPosition * totalDuration).toLong())
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        playedColor = Color.White,
-                        bufferedColor = Color(0xFF4CAF50),
-                        unplayedColor = Color.White.copy(alpha = 0.3f),
-                        thumbColor = Color.White
-                    )
-
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(text = formatTime(currentPosition), style = MaterialTheme.typography.labelSmall, color = Color.White)
-                        Text(text = formatTime(totalDuration), style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
-                    }
                 }
             }
         }
