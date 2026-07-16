@@ -67,15 +67,9 @@ fun SettingsScreen(
         androidx.compose.ui.platform.LocalConfiguration.current.screenHeightDp.dp.toPx()
     }
     
-    // 记录 Column 容器在窗口中的 Y 坐标
-    var containerY by remember { mutableFloatStateOf(0f) }
-    
     // 辅助函数：计算并执行滚动，使控件尽量居中显示
-    // controlWindowY: 控件在窗口中的 Y 坐标
-    // controlHeight: 控件高度
-    fun scrollToCenter(controlWindowY: Float, controlHeight: Float) {
-        // 控件在内容中的位置 = 控件窗口位置 - 容器窗口位置 + 当前滚动偏移
-        val controlPositionInContent = controlWindowY - containerY + scrollState.value
+    // controlPositionInContent: 控件在 Column 内容中的固定位置（通过 positionInParent().y 获取）
+    fun scrollToCenter(controlPositionInContent: Float, controlHeight: Float) {
         // 计算目标：让控件显示在屏幕中间
         val target = (controlPositionInContent - screenHeightPx / 2 + controlHeight / 2).roundToInt()
         scope.launch {
@@ -106,7 +100,6 @@ fun SettingsScreen(
                 .padding(paddingValues)
                 .padding(if (isTv) 32.dp else 16.dp)
                 .verticalScroll(scrollState)
-                .onGloballyPositioned { containerY = it.positionInWindow().y }
         ) {
             // 账户信息卡片
             Text(
@@ -246,7 +239,7 @@ fun SettingsScreen(
                                 }
                             }
                             .onGloballyPositioned {
-                                logoutYPos = it.positionInWindow().y
+                                logoutYPos = it.positionInParent().y
                                 logoutHeight = it.size.height.toFloat()
                             }
                             .clickable {
@@ -319,7 +312,7 @@ fun SettingsScreen(
                                 }
                             }
                             .onGloballyPositioned {
-                                seekYPos = it.positionInWindow().y
+                                seekYPos = it.positionInParent().y
                                 seekHeight = it.size.height.toFloat()
                             }
                             .onKeyEvent { event ->
@@ -394,7 +387,7 @@ fun SettingsScreen(
                                 }
                             }
                             .onGloballyPositioned {
-                                maxBufferYPos = it.positionInWindow().y
+                                maxBufferYPos = it.positionInParent().y
                                 maxBufferHeight = it.size.height.toFloat()
                             }
                             .onKeyEvent { event ->
@@ -468,7 +461,7 @@ fun SettingsScreen(
                                 }
                             }
                             .onGloballyPositioned {
-                                minBufferYPos = it.positionInWindow().y
+                                minBufferYPos = it.positionInParent().y
                                 minBufferHeight = it.size.height.toFloat()
                             }
                             .onKeyEvent { event ->
@@ -537,7 +530,7 @@ fun SettingsScreen(
                                 }
                             }
                             .onGloballyPositioned {
-                                adBlockYPos = it.positionInWindow().y
+                                adBlockYPos = it.positionInParent().y
                                 adBlockHeight = it.size.height.toFloat()
                             }
                             .background(
@@ -606,7 +599,7 @@ fun SettingsScreen(
                                 }
                             }
                             .onGloballyPositioned {
-                                imgProxyYPos = it.positionInWindow().y
+                                imgProxyYPos = it.positionInParent().y
                                 imgProxyHeight = it.size.height.toFloat()
                             }
                             .background(
@@ -675,7 +668,7 @@ fun SettingsScreen(
                                 }
                             }
                             .onGloballyPositioned {
-                                forceTvYPos = it.positionInWindow().y
+                                forceTvYPos = it.positionInParent().y
                                 forceTvHeight = it.size.height.toFloat()
                             }
                             .background(
