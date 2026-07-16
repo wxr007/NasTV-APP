@@ -7,6 +7,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -93,6 +94,12 @@ fun PlayScreen(
 
     // Seek indicator
     var seekIndicatorText by remember { mutableStateOf<String?>(null) }
+
+    // Drag seek state
+    var isDragSeeking by remember { mutableStateOf(false) }
+    var dragWasPlayingBefore by remember { mutableStateOf(false) }
+    var dragStartPosition by remember { mutableLongStateOf(0L) }
+    var dragSeekPosition by remember { mutableLongStateOf(0L) }
 
     // Player width for double-tap position detection
     var playerWidth by remember { mutableFloatStateOf(0f) }
@@ -408,7 +415,9 @@ fun PlayScreen(
                         .onSizeChanged { playerWidth = it.width.toFloat() }
                         .pointerInput(seekDuration) {
                             detectTapGestures(
-                                onTap = { controlsVisible = !controlsVisible },
+                                onTap = {
+                                    if (!isDragSeeking) controlsVisible = !controlsVisible
+                                },
                                 onDoubleTap = { offset ->
                                     val fraction = if (playerWidth > 0) offset.x / playerWidth else 0.5f
                                     when {
@@ -432,6 +441,39 @@ fun PlayScreen(
                                             }
                                         }
                                     }
+                                }
+                            )
+                        }
+                        // 水平拖动 seek（手机端）
+                        .pointerInput(Unit) {
+                            detectHorizontalDragGestures(
+                                onDragStart = {
+                                    dragStartPosition = exoPlayer.currentPosition
+                                    dragSeekPosition = dragStartPosition
+                                    dragWasPlayingBefore = exoPlayer.isPlaying
+                                    isDragSeeking = true
+                                    if (exoPlayer.isPlaying) exoPlayer.pause()
+                                },
+                                onHorizontalDrag = { _, dragAmount ->
+                                    if (playerWidth > 0 && totalDuration > 0) {
+                                        // 屏幕宽度映射到总时长
+                                        val deltaMs = (dragAmount / playerWidth * totalDuration).toLong()
+                                        dragSeekPosition = (dragStartPosition + deltaMs)
+                                            .coerceIn(0, totalDuration)
+                                        seekIndicatorText = "${formatTime(dragSeekPosition)} / ${formatTime(totalDuration)}"
+                                    }
+                                },
+                                onDragEnd = {
+                                    isDragSeeking = false
+                                    exoPlayer.seekTo(dragSeekPosition)
+                                    seekIndicatorText = null
+                                    if (dragWasPlayingBefore) exoPlayer.play()
+                                },
+                                onDragCancel = {
+                                    isDragSeeking = false
+                                    exoPlayer.seekTo(dragStartPosition)
+                                    seekIndicatorText = null
+                                    if (dragWasPlayingBefore) exoPlayer.play()
                                 }
                             )
                         }
