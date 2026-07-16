@@ -197,18 +197,49 @@ fun SettingsScreen(
             
             Spacer(modifier = Modifier.height(if (isTv) 16.dp else 12.dp))
 
-            Button(
-                onClick = { 
-                    viewModel.logout()
-                    onLogout()
-                },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error
-                ),
-                shape = RoundedCornerShape(12.dp)
+            var isLogoutFocused by remember { mutableStateOf(false) }
+            val logoutFocusRequester = remember { FocusRequester() }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (isTv) Modifier
+                            .focusRequester(logoutFocusRequester)
+                            .focusProperties { canFocus = true }
+                            .onFocusChanged { isLogoutFocused = it.isFocused }
+                            .clickable {
+                                viewModel.logout()
+                                onLogout()
+                            }
+                            .background(
+                                if (isLogoutFocused) Color(0xFFFFD700).copy(alpha = 0.2f) else MaterialTheme.colorScheme.error,
+                                RoundedCornerShape(12.dp)
+                            )
+                            .border(
+                                if (isLogoutFocused) 3.dp else 0.dp,
+                                if (isLogoutFocused) Color(0xFFFFD700) else Color.Transparent,
+                                RoundedCornerShape(12.dp)
+                            )
+                            .padding(vertical = 12.dp)
+                        else Modifier
+                    )
+                    .then(
+                        if (!isTv) Modifier
+                            .clickable {
+                                viewModel.logout()
+                                onLogout()
+                            }
+                            .background(MaterialTheme.colorScheme.error, RoundedCornerShape(12.dp))
+                            .padding(vertical = 12.dp)
+                        else Modifier
+                    ),
+                contentAlignment = Alignment.Center
             ) {
-                Text("退出登录", style = if (isTv) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge)
+                Text(
+                    "退出登录",
+                    style = if (isTv) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge,
+                    color = Color.White
+                )
             }
 
             Spacer(modifier = Modifier.height(if (isTv) 48.dp else 24.dp))
