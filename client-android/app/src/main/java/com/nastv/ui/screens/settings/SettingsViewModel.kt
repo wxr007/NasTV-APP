@@ -47,6 +47,7 @@ class SettingsViewModel @Inject constructor(
             _seekDuration.value = preferencesRepository.seekDurationFlow.first()
             _forceTvMode.value = preferencesRepository.forceTvModeFlow.first()
             _themeMode.value = preferencesRepository.themeModeFlow.first()
+            _adBlockEnabled.value = preferencesRepository.adBlockEnabledFlow.first()
             _username.value = preferencesRepository.usernameFlow.first()
             _userRole.value = preferencesRepository.userRoleFlow.first()
             
@@ -55,6 +56,12 @@ class SettingsViewModel @Inject constructor(
             if (lastServerId != null) {
                 val servers = preferencesRepository.serversFlow.first()
                 _serverName.value = servers.find { it.id == lastServerId }?.name
+            }
+        }
+        // 持续监听广告屏蔽设置变化（播放页等其它地方可能修改）
+        viewModelScope.launch {
+            preferencesRepository.adBlockEnabledFlow.collect { enabled ->
+                _adBlockEnabled.value = enabled
             }
         }
     }

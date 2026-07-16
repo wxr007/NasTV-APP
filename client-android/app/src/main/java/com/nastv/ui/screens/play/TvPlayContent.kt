@@ -1168,36 +1168,53 @@ fun TvPlayContent(
                         Spacer(modifier = Modifier.height(24.dp))
 
                         // 广告屏蔽开关
-                        Row(
+                        var isAdBlockFocused by remember { mutableStateOf(false) }
+                        val adBlockFocusRequester = remember { FocusRequester() }
+                        Box(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .focusRequester(adBlockFocusRequester)
+                                .focusProperties { canFocus = true }
+                                .onFocusChanged { isAdBlockFocused = it.isFocused }
                                 .clickable { onToggleAdBlock(!adBlockEnabled) }
-                                .background(Color(0xFF333333), RoundedCornerShape(8.dp))
-                                .padding(horizontal = 16.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween
+                                .background(
+                                    if (isAdBlockFocused) Color(0xFFFFD700).copy(alpha = 0.2f) else Color(0xFF333333),
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .border(
+                                    if (isAdBlockFocused) 3.dp else 0.dp,
+                                    if (isAdBlockFocused) Color(0xFFFFD700) else Color.Transparent,
+                                    RoundedCornerShape(8.dp)
+                                )
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
                         ) {
-                            Text(
-                                text = "广告屏蔽",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = Color.White
-                            )
                             Row(
+                                modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                horizontalArrangement = Arrangement.SpaceBetween
                             ) {
                                 Text(
-                                    text = if (adBlockEnabled) "已开启" else "已关闭",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = if (adBlockEnabled) Color(0xFF4CAF50) else Color.White.copy(alpha = 0.5f)
+                                    text = "广告屏蔽",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = Color.White
                                 )
-                                Switch(
-                                    checked = adBlockEnabled,
-                                    onCheckedChange = { onToggleAdBlock(it) },
-                                    colors = SwitchDefaults.colors(
-                                        checkedTrackColor = Color(0xFF4CAF50)
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Text(
+                                        text = if (adBlockEnabled) "已开启" else "已关闭",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = if (adBlockEnabled) Color(0xFF4CAF50) else Color.White.copy(alpha = 0.5f)
                                     )
-                                )
+                                    Switch(
+                                        checked = adBlockEnabled,
+                                        onCheckedChange = { onToggleAdBlock(it) },
+                                        colors = SwitchDefaults.colors(
+                                            checkedTrackColor = Color(0xFF4CAF50)
+                                        )
+                                    )
+                                }
                             }
                         }
                         Spacer(modifier = Modifier.height(32.dp))
