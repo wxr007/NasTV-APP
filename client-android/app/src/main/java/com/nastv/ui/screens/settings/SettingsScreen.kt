@@ -57,13 +57,11 @@ fun SettingsScreen(
     var showThemeDialog by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
-    var scrollDelta by remember { mutableIntStateOf(0) }
+    var scrollTarget by remember { mutableIntStateOf(0) }
 
-    LaunchedEffect(scrollDelta) {
-        if (scrollDelta != 0) {
-            val target = (scrollState.value + scrollDelta).coerceIn(0, scrollState.maxValue)
-            scrollState.animateScrollTo(target)
-            scrollDelta = 0
+    LaunchedEffect(scrollTarget) {
+        if (scrollTarget > 0) {
+            scrollState.animateScrollTo(scrollTarget)
         }
     }
 
@@ -90,24 +88,6 @@ fun SettingsScreen(
                 .padding(paddingValues)
                 .padding(if (isTv) 32.dp else 16.dp)
                 .verticalScroll(scrollState)
-                .then(
-                    if (isTv) Modifier.onPreviewKeyEvent { event ->
-                        if (event.type == KeyEventType.KeyDown) {
-                            when (event.key) {
-                                Key.DirectionDown -> {
-                                    scrollDelta = 350
-                                    false // 不拦截，让焦点正常移动
-                                }
-                                Key.DirectionUp -> {
-                                    scrollDelta = -350
-                                    false
-                                }
-                                else -> false
-                            }
-                        } else false
-                    }
-                    else Modifier
-                )
         ) {
             // 账户信息卡片
             Text(
@@ -243,7 +223,7 @@ fun SettingsScreen(
                                 isLogoutFocused = focusState.isFocused
                                 if (focusState.isFocused) {
                                     val targetPx = (logoutYPos - 400).roundToInt().coerceAtLeast(0)
-                                    scrollDelta = targetPx - scrollState.value
+                                    scrollTarget = targetPx.coerceAtLeast(0)
                                 }
                             }
                             .onGloballyPositioned { logoutYPos = it.positionInWindow().y }
@@ -313,7 +293,7 @@ fun SettingsScreen(
                                 isSeekSliderFocused = focusState.isFocused
                                 if (focusState.isFocused) {
                                     val targetPx = (seekYPos - 400).roundToInt().coerceAtLeast(0)
-                                    scrollDelta = targetPx - scrollState.value
+                                    scrollTarget = targetPx.coerceAtLeast(0)
                                 }
                             }
                             .onGloballyPositioned { seekYPos = it.positionInWindow().y }
@@ -385,7 +365,7 @@ fun SettingsScreen(
                                 isMaxBufferFocused = focusState.isFocused
                                 if (focusState.isFocused) {
                                     val targetPx = (maxBufferYPos - 400).roundToInt().coerceAtLeast(0)
-                                    scrollDelta = targetPx - scrollState.value
+                                    scrollTarget = targetPx.coerceAtLeast(0)
                                 }
                             }
                             .onGloballyPositioned { maxBufferYPos = it.positionInWindow().y }
@@ -456,7 +436,7 @@ fun SettingsScreen(
                                 isMinBufferFocused = focusState.isFocused
                                 if (focusState.isFocused) {
                                     val targetPx = (minBufferYPos - 400).roundToInt().coerceAtLeast(0)
-                                    scrollDelta = targetPx - scrollState.value
+                                    scrollTarget = targetPx.coerceAtLeast(0)
                                 }
                             }
                             .onGloballyPositioned { minBufferYPos = it.positionInWindow().y }
@@ -522,7 +502,7 @@ fun SettingsScreen(
                                 isAdBlockFocused = focusState.isFocused
                                 if (focusState.isFocused) {
                                     val targetPx = (adBlockYPos - 400).roundToInt().coerceAtLeast(0)
-                                    scrollDelta = targetPx - scrollState.value
+                                    scrollTarget = targetPx.coerceAtLeast(0)
                                 }
                             }
                             .onGloballyPositioned { adBlockYPos = it.positionInWindow().y }
@@ -588,7 +568,7 @@ fun SettingsScreen(
                                 isImgProxyFocused = focusState.isFocused
                                 if (focusState.isFocused) {
                                     val targetPx = (imgProxyYPos - 400).roundToInt().coerceAtLeast(0)
-                                    scrollDelta = targetPx - scrollState.value
+                                    scrollTarget = targetPx.coerceAtLeast(0)
                                 }
                             }
                             .onGloballyPositioned { imgProxyYPos = it.positionInWindow().y }
