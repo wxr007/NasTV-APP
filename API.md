@@ -36,6 +36,7 @@ GET /api/sources
 ```json
 { "code": 0, "data": [{ "id": "dyttzyapi", "name": "天堂资源", "url": "http://...", "enabled": true }] }
 ```
+说明：普通用户只返回其访问源列表中的源；管理员和未登录用户返回所有源。
 
 ### 4. 获取视频源分类
 ```
@@ -128,7 +129,7 @@ GET /api/play/resolve?url=https://...
 |------|------|
 | url | 播放 URL（可能是 share 页面） |
 
-说明：解析 share 页面提取真实 m3u8 URL，如果已经是 m3u8 地址则直接返回。用于前端播放前获取可播放的直链。
+说明：解析 share 页面提取真实 m3u8 URL，如果已经是 m3u8 地址则直接返回。用于前端播放前获取可播放的直链。会自动检测 master playlist（含 `#EXT-X-STREAM-INF`）并选择最高码率的子播放列表，递归解析最多 3 层。
 响应：
 ```json
 { "code": 0, "data": { "url": "https://.../index.m3u8" } }
@@ -283,7 +284,7 @@ GET /api/play-history
       "key": "dyttzyapi:80982",
       "sourceId": "dyttzyapi",
       "videoId": "80982",
-      "name": "女神“异世界转生想成为什么”我“勇者的肋骨”",
+      "name": "标题",
       "pic": "https://vod.dyttimage.com/upload/vod/20260408-1/0f811249c21dd914c79287cce8e292a8.webp",
       "progress": 26.496523,
       "duration": 1389.2066680000041,
@@ -357,7 +358,17 @@ DELETE /api/search-history
 { "code": 0, "message": "ok" }
 ```
 
-### 26. 获取跳过配置
+### 26. 获取广告屏蔽字符串列表
+```
+GET /api/adblock/strings
+```
+响应：
+```json
+{ "code": 0, "data": [{ "string": "ad.example.com", "note": "广告域名" }] }
+```
+说明：获取所有广告屏蔽字符串及其备注，用于前端播放页的广告分片过滤。
+
+### 27. 获取跳过配置
 ```
 GET /api/skip-config/:videoId
 ```
@@ -370,7 +381,7 @@ GET /api/skip-config/:videoId
 { "code": 0, "data": { "skipStart": 30, "skipEnd": 60 } }
 ```
 
-### 27. 设置跳过配置
+### 28. 设置跳过配置
 ```
 PUT /api/skip-config/:videoId
 ```
@@ -391,7 +402,7 @@ PUT /api/skip-config/:videoId
 
 ## 缓存相关接口（需要登录）
 
-### 28. 开始缓存视频
+### 29. 开始缓存视频
 ```
 POST /api/cache/start
 ```
@@ -405,7 +416,7 @@ POST /api/cache/start
 { "code": 0, "message": "开始缓存" }
 ```
 
-### 29. 获取缓存状态
+### 30. 获取缓存状态
 ```
 GET /api/cache/status/:sourceId/:videoId
 ```
@@ -420,7 +431,7 @@ GET /api/cache/status/:sourceId/:videoId
 ```
 说明：state 取值 `idle` | `caching` | `completed` | `failed`。
 
-### 30. 获取所有缓存任务（进行中/失败）
+### 31. 获取所有缓存任务（进行中/失败）
 ```
 GET /api/cache/tasks
 ```
@@ -430,7 +441,7 @@ GET /api/cache/tasks
 ```
 说明：只返回 active（caching 或 failed）状态的任务。
 
-### 31. 获取所有已缓存的剧集
+### 32. 获取所有已缓存的剧集
 ```
 GET /api/cache/episodes
 ```
@@ -440,17 +451,43 @@ GET /api/cache/episodes
 ```
 说明：只返回 state 为 `completed` 的缓存记录，并附带磁盘文件大小（diskSize）。
 
-### 32. 获取已缓存视频系列列表
+### 33. 获取已缓存视频系列列表
 ```
 GET /api/cache/videos
 ```
-说明：按视频（sourceId+videoId）分组，统计每部视频的已缓存集数，返回封面和最新更新时间。
+说明：按视频（sourceId+videoId）分组，统计每部视频的已缓存集数，返回封面和最新更新时间。普通用户只返回其访问组中的视频；管理员和未登录用户返回所有视频。
 响应：
 ```json
 { "code": 0, "data": [{ "sourceId": "dyttzyapi", "videoId": "12345", "title": "标题", "picUrl": "url", "cachedCount": 3, "updatedAt": "..." }] }
 ```
 
-### 33. 同步缓存剧集信息
+### 34. 修复缓存 m3u8 文件
+```
+POST /api/cache/repair/:sourceId/:videoId
+```
+| 参数 | 说明 |
+|------|------|
+| sourceId | 视频源 ID（路径参数） |
+| videoId | 视频 ID（路径参数） |
+
+说明：检查该视频所有缓存剧集的文件夹，若缺少 `index.m3u8` 或 `original.m3u8`，则从 Redis 中保存的 `episodeUrl` 重新下载并生成。需要登录。
+
+响应：
+```json
+{
+  "code": 0,
+  "data": {
+    "results": [
+      { "episodeIndex": 0, "repaired": true, "message": "修复成功" },
+      { "episodeIndex": 1, "repaired": false, "message": "m3u8 文件已完整，无需修复" }
+    ],
+    "repairedCount": 1,
+    "total": 2
+  }
+}
+```
+
+### 35. 同步缓存剧集信息
 ```
 POST /api/cache/episode/sync
 ```
@@ -464,7 +501,7 @@ POST /api/cache/episode/sync
 { "code": 0, "data": { "state": "completed", ... } }
 ```
 
-### 34. 删除缓存任务
+### 36. 删除缓存任务
 ```
 DELETE /api/cache/task/:sourceId/:videoId/:episodeIndex
 ```
@@ -480,7 +517,7 @@ DELETE /api/cache/task/:sourceId/:videoId/:episodeIndex
 { "code": 0, "message": "删除成功" }
 ```
 
-### 35. 初始化缓存上传（浏览器下载回传模式）
+### 37. 初始化缓存上传（浏览器下载回传模式）
 ```
 POST /api/cache/upload/init
 ```
@@ -494,7 +531,7 @@ POST /api/cache/upload/init
 { "code": 0, "message": "初始化成功" }
 ```
 
-### 36. 上传 TS 切片
+### 38. 上传 TS 切片
 ```
 POST /api/cache/upload/segment?sourceId=dyttzyapi&videoId=12345&episodeIndex=0&segmentIndex=0
 ```
@@ -511,7 +548,7 @@ POST /api/cache/upload/segment?sourceId=dyttzyapi&videoId=12345&episodeIndex=0&s
 { "code": 0, "message": "上传成功" }
 ```
 
-### 37. 完成缓存上传
+### 39. 完成缓存上传
 ```
 POST /api/cache/upload/complete
 ```
@@ -524,7 +561,7 @@ POST /api/cache/upload/complete
 { "code": 0, "message": "完成上传" }
 ```
 
-### 38. 继续缓存（从失败/中断恢复）
+### 40. 继续缓存（从失败/中断恢复）
 ```
 POST /api/cache/upload/continue
 ```
@@ -538,7 +575,7 @@ POST /api/cache/upload/continue
 { "code": 0, "data": { "sourceId": "...", "videoId": "...", "episodeIndex": 0, "episodeUrl": "...", "total": 20, "cached": 10, "progress": 50, "title": "电影名" } }
 ```
 
-### 39. 获取缓存的 TS 分片
+### 41. 获取缓存的 TS 分片
 ```
 GET /api/cache/ts/:sourceId/:videoId/:episodeIndex/:filename
 ```
@@ -551,7 +588,7 @@ GET /api/cache/ts/:sourceId/:videoId/:episodeIndex/:filename
 
 说明：用于缓存剧集的本地点播播放。`Content-Type: video/MP2T`
 
-### 40. 获取缓存的 m3u8 播放列表
+### 42. 获取缓存的 m3u8 播放列表（支持去广告）
 ```
 GET /api/cache/:sourceId/:videoId/:episodeIndex.m3u8
 ```
@@ -560,8 +597,66 @@ GET /api/cache/:sourceId/:videoId/:episodeIndex.m3u8
 | sourceId | 视频源 ID（路径参数） |
 | videoId | 视频 ID（路径参数） |
 | episodeIndex | 剧集索引（路径参数，末尾带 `.m3u8` 后缀） |
+| adBlock | 可选，设为 `1` 时启用服务端去广告过滤 |
 
-说明：用于缓存剧集的本地点播播放，URL 以 `.m3u8` 结尾以便播放器识别。`Content-Type: application/vnd.apple.mpegurl`
+说明：用于缓存剧集的本地点播播放，URL 以 `.m3u8` 结尾以便播放器识别。添加 `adBlock=1` 参数时，服务端会读取 `original.m3u8` 分析分片域名和路径长度，自动过滤广告分片后返回。`Content-Type: application/vnd.apple.mpegurl`
+
+### 43. 获取所有视频组
+```
+GET /api/cache/groups
+```
+响应：
+```json
+{ "code": 0, "data": [{ "id": "vg_xxx", "name": "动漫", "createdAt": "2026-07-14T00:00:00.000Z" }] }
+```
+
+### 44. 获取视频的视频组
+```
+GET /api/cache/video-group/:sourceId/:videoId
+```
+| 参数 | 说明 |
+|------|------|
+| sourceId | 视频源 ID（路径参数） |
+| videoId | 视频 ID（路径参数） |
+
+响应：
+```json
+{ "code": 0, "data": { "groupId": "vg_xxx" } }
+```
+说明：返回该视频所属的视频组 ID，未设置则 `groupId` 为 `null`。
+
+### 45. 设置视频的视频组
+```
+PUT /api/cache/video-group/:sourceId/:videoId
+```
+| 参数 | 说明 |
+|------|------|
+| sourceId | 视频源 ID（路径参数） |
+| videoId | 视频 ID（路径参数） |
+
+请求体：
+```json
+{ "groupId": "vg_xxx" }
+```
+说明：一个视频只能属于一个视频组，设置新组时会自动从旧组移除。`groupId` 为 `null` 时移除分组。
+响应：
+```json
+{ "code": 0, "message": "设置成功" }
+```
+
+### 46. 移除视频的视频组
+```
+DELETE /api/cache/video-group/:sourceId/:videoId
+```
+| 参数 | 说明 |
+|------|------|
+| sourceId | 视频源 ID（路径参数） |
+| videoId | 视频 ID（路径参数） |
+
+响应：
+```json
+{ "code": 0, "message": "移除成功" }
+```
 
 ---
 
@@ -569,7 +664,7 @@ GET /api/cache/:sourceId/:videoId/:episodeIndex.m3u8
 
 说明：以下接口需要 cookie 中携带有效 token 或 `Authorization: Bearer token`，且用户 role 必须为 `admin`。默认管理员（环境变量 ADMIN_USERNAME 配置）不可删除和修改。
 
-### 41. 获取用户列表
+### 47. 获取用户列表
 ```
 GET /api/admin/users
 ```
@@ -579,7 +674,7 @@ GET /api/admin/users
 ```
 说明：返回所有通过管理后台创建的普通用户列表。
 
-### 42. 创建用户
+### 48. 创建用户
 ```
 POST /api/admin/users
 ```
@@ -593,7 +688,7 @@ POST /api/admin/users
 ```
 错误：400（用户名密码为空或与默认管理员同名）、409（用户已存在）
 
-### 43. 修改用户密码
+### 49. 修改用户密码
 ```
 PUT /api/admin/users/:username
 ```
@@ -611,7 +706,7 @@ PUT /api/admin/users/:username
 ```
 错误：403（默认管理员不可修改）、404（用户不存在）
 
-### 44. 删除用户
+### 50. 删除用户
 ```
 DELETE /api/admin/users/:username
 ```
@@ -626,7 +721,124 @@ DELETE /api/admin/users/:username
 ```
 错误：403（默认管理员不可删除）、404（用户不存在）
 
-### 45. 添加视频源
+### 51. 获取用户的访问组
+```
+GET /api/admin/users/:username/access-groups
+```
+| 参数 | 说明 |
+|------|------|
+| username | 用户名（路径参数） |
+
+响应：
+```json
+{ "code": 0, "data": [{ "id": "vg_xxx", "name": "动漫" }] }
+```
+说明：返回该用户可访问的视频组列表。
+
+### 52. 设置用户的访问组
+```
+PUT /api/admin/users/:username/access-groups
+```
+| 参数 | 说明 |
+|------|------|
+| username | 用户名（路径参数） |
+
+请求体：
+```json
+{ "groupIds": ["vg_xxx", "vg_yyy"] }
+```
+说明：设置该用户可访问的视频组 ID 列表。
+响应：
+```json
+{ "code": 0, "message": "设置成功" }
+```
+
+### 53. 获取用户的访问源
+```
+GET /api/admin/users/:username/access-sources
+```
+| 参数 | 说明 |
+|------|------|
+| username | 用户名（路径参数） |
+
+响应：
+```json
+{ "code": 0, "data": ["dyttzyapi", "ffzy"] }
+```
+说明：返回该用户可使用的视频源 ID 列表。
+
+### 54. 设置用户的访问源
+```
+PUT /api/admin/users/:username/access-sources
+```
+| 参数 | 说明 |
+|------|------|
+| username | 用户名（路径参数） |
+
+请求体：
+```json
+{ "sourceIds": ["dyttzyapi", "ffzy"] }
+```
+说明：设置该用户可使用的视频源 ID 列表。
+响应：
+```json
+{ "code": 0, "message": "设置成功" }
+```
+
+### 55. 获取视频组列表
+```
+GET /api/admin/video-groups
+```
+响应：
+```json
+{ "code": 0, "data": [{ "id": "vg_xxx", "name": "动漫", "createdAt": "2026-07-14T00:00:00.000Z" }] }
+```
+
+### 56. 创建视频组
+```
+POST /api/admin/video-groups
+```
+请求体：
+```json
+{ "name": "动漫" }
+```
+响应：
+```json
+{ "code": 0, "data": { "id": "vg_xxx", "name": "动漫", "createdAt": "..." } }
+```
+
+### 57. 修改视频组
+```
+PUT /api/admin/video-groups/:id
+```
+| 参数 | 说明 |
+|------|------|
+| id | 视频组 ID（路径参数） |
+
+请求体：
+```json
+{ "name": "新名称" }
+```
+响应：
+```json
+{ "code": 0, "data": { "id": "vg_xxx", "name": "新名称", "createdAt": "..." } }
+```
+
+### 58. 删除视频组
+```
+DELETE /api/admin/video-groups/:id
+```
+| 参数 | 说明 |
+|------|------|
+| id | 视频组 ID（路径参数） |
+
+说明：同时清除所有缓存视频中该视频组的关联。
+响应：
+```json
+{ "code": 0, "message": "删除成功" }
+```
+
+### 59. 添加视频源
 ```
 POST /api/admin/sources
 ```
@@ -640,7 +852,7 @@ POST /api/admin/sources
 { "code": 0, "data": { "id": "custom_id", "name": "新资源", "url": "http://...", "enabled": false } }
 ```
 
-### 46. 更新视频源
+### 60. 更新视频源
 ```
 PUT /api/admin/sources/:id
 ```
@@ -657,7 +869,7 @@ PUT /api/admin/sources/:id
 { "code": 0, "data": { "id": "dyttzyapi", "name": "新名称", "url": "...", "enabled": true } }
 ```
 
-### 47. 删除视频源
+### 61. 删除视频源
 ```
 DELETE /api/admin/sources/:id
 ```
@@ -670,7 +882,7 @@ DELETE /api/admin/sources/:id
 { "code": 0, "message": "删除成功" }
 ```
 
-### 48. 切换视频源启用状态
+### 62. 切换视频源启用状态
 ```
 PUT /api/admin/sources/:id/toggle
 ```
@@ -686,6 +898,73 @@ PUT /api/admin/sources/:id/toggle
 ```json
 { "code": 0, "data": { "id": "dyttzyapi", "name": "...", "enabled": true } }
 ```
+
+### 63. 获取广告屏蔽字符串列表
+```
+GET /api/admin/adblock-strings
+```
+响应：
+```json
+{ "code": 0, "data": [{ "string": "ad.example.com", "note": "广告域名" }] }
+```
+
+### 64. 添加广告屏蔽字符串
+```
+POST /api/admin/adblock-strings
+```
+请求体：
+```json
+{ "string": "ad.example.com", "note": "广告域名" }
+```
+参数说明：string 为必填，note 可选。
+响应：
+```json
+{ "code": 0, "message": "添加成功" }
+```
+错误：400（字符串为空）、409（字符串已存在）
+
+### 65. 更新广告屏蔽字符串备注
+```
+PUT /api/admin/adblock-strings
+```
+请求体：
+```json
+{ "string": "ad.example.com", "note": "新备注" }
+```
+响应：
+```json
+{ "code": 0, "message": "更新成功" }
+```
+错误：400（字符串为空）、404（字符串不存在）
+
+### 66. 删除广告屏蔽字符串
+```
+DELETE /api/admin/adblock-strings
+```
+请求体：
+```json
+{ "string": "ad.example.com" }
+```
+响应：
+```json
+{ "code": 0, "message": "删除成功" }
+```
+
+---
+
+## Redis 数据结构
+
+| Key | 类型 | 说明 |
+|-----|------|------|
+| `sources` | Hash | 视频源数据，field=id, value=JSON |
+| `admin:video-groups` | Hash | 视频组定义，field=groupId, value=JSON |
+| `cache:group:{groupId}` | Set | 视频组关联的视频，member=`{sourceId}:{videoId}` |
+| `cache:video-group:{sourceId}:{videoId}` | String | 视频所属的视频组 ID |
+| `user:{username}:access-groups` | Set | 用户可访问的视频组 ID |
+| `user:{username}:access-sources` | Set | 用户可使用的视频源 ID |
+| `users` | Hash | 用户数据，field=username, value=JSON |
+| `session:{token}` | String | 用户会话，value=JSON |
+| `adblock:strings` | Hash | 广告屏蔽字符串，field=屏蔽关键词, value=备注 |
 
 ---
 
@@ -776,5 +1055,11 @@ interface CachedEpisode {
   episodeIndex: number;
   status: EpisodeCacheStatus;
   diskSize: number;
+}
+
+interface VideoGroup {
+  id: string;
+  name: string;
+  createdAt: string;
 }
 ```
