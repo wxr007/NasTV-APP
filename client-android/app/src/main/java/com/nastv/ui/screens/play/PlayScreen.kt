@@ -456,9 +456,9 @@ fun PlayScreen(
                                 },
                                 onHorizontalDrag = { _, dragAmount ->
                                     if (playerWidth > 0 && totalDuration > 0) {
-                                        // 屏幕宽度映射到总时长
+                                        // 屏幕宽度映射到总时长，累加到当前拖拽位置
                                         val deltaMs = (dragAmount / playerWidth * totalDuration).toLong()
-                                        dragSeekPosition = (dragStartPosition + deltaMs)
+                                        dragSeekPosition = (dragSeekPosition + deltaMs)
                                             .coerceIn(0, totalDuration)
                                         seekIndicatorText = "${formatTime(dragSeekPosition)} / ${formatTime(totalDuration)}"
                                     }
@@ -615,6 +615,8 @@ fun PlayScreen(
                             onToggleControls = { controlsVisible = !controlsVisible },
                             onUpdateBufferSettings = { min, max -> viewModel.updateBufferSettings(min, max) },
                             onSeekIndicator = { text -> seekIndicatorText = text },
+                            adBlockEnabled = adBlockEnabled,
+                            onToggleAdBlock = { viewModel.setAdBlockEnabled(it) },
                             seekDuration = seekDuration,
                         )
                     } else {

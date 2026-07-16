@@ -20,12 +20,12 @@ import androidx.compose.material.icons.filled.FastForward
 import androidx.compose.material.icons.filled.FastRewind
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -92,6 +92,8 @@ fun TvPlayContent(
     onToggleControls: () -> Unit,
     onUpdateBufferSettings: (Int, Int) -> Unit,
     onSeekIndicator: (String?) -> Unit,
+    adBlockEnabled: Boolean = false,
+    onToggleAdBlock: (Boolean) -> Unit = {},
     seekDuration: Int = 10,
 ) {
     var sortAscending by remember { mutableStateOf(true) }
@@ -411,20 +413,6 @@ fun TvPlayContent(
                         }
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(16.dp)
-                            .size(40.dp)
-                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FullscreenExit,
-                            contentDescription = "退出最大化",
-                            tint = Color.White,
-                            modifier = Modifier.align(Alignment.Center).size(24.dp)
-                        )
-                    }
                 }
             }
         } else {
@@ -1177,6 +1165,41 @@ fun TvPlayContent(
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.6f)
                         )
+                        Spacer(modifier = Modifier.height(24.dp))
+
+                        // 广告屏蔽开关
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onToggleAdBlock(!adBlockEnabled) }
+                                .background(Color(0xFF333333), RoundedCornerShape(8.dp))
+                                .padding(horizontal = 16.dp, vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = "广告屏蔽",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Color.White
+                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = if (adBlockEnabled) "已开启" else "已关闭",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if (adBlockEnabled) Color(0xFF4CAF50) else Color.White.copy(alpha = 0.5f)
+                                )
+                                Switch(
+                                    checked = adBlockEnabled,
+                                    onCheckedChange = { onToggleAdBlock(it) },
+                                    colors = SwitchDefaults.colors(
+                                        checkedTrackColor = Color(0xFF4CAF50)
+                                    )
+                                )
+                            }
+                        }
                         Spacer(modifier = Modifier.height(32.dp))
 
                         // 按钮行

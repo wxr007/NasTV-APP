@@ -229,14 +229,7 @@ fun SettingsScreen(
                 Text("30秒", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
-            Spacer(modifier = Modifier.height(if (isTv) 48.dp else 24.dp))
-
-            Text(
-                text = "图片设置",
-                style = if (isTv) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleLarge
-            )
-
-            Spacer(modifier = Modifier.height(if (isTv) 16.dp else 8.dp))
+            Spacer(modifier = Modifier.height(if (isTv) 24.dp else 12.dp))
 
             // 广告屏蔽开关
             Row(

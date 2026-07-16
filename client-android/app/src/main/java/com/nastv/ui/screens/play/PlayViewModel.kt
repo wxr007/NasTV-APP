@@ -81,12 +81,24 @@ class PlayViewModel @Inject constructor(
             _seekDuration.value = preferencesRepository.seekDurationFlow.first()
             _bufferMaxDuration.value = preferencesRepository.bufferMaxDurationFlow.first()
             _bufferMinDuration.value = preferencesRepository.bufferMinDurationFlow.first()
-            _adBlockEnabled.value = preferencesRepository.adBlockEnabledFlow.first()
+        }
+        // 持续监听广告屏蔽设置变化
+        viewModelScope.launch {
+            preferencesRepository.adBlockEnabledFlow.collect { enabled ->
+                _adBlockEnabled.value = enabled
+            }
         }
         loadAdBlockStrings()
     }
 
     fun isAdBlockEnabled(): Boolean = _adBlockEnabled.value
+
+    fun setAdBlockEnabled(enabled: Boolean) {
+        _adBlockEnabled.value = enabled
+        viewModelScope.launch {
+            preferencesRepository.saveAdBlockEnabled(enabled)
+        }
+    }
 
     fun getAdBlockStrings(): List<String> = _adBlockStrings.value
 
