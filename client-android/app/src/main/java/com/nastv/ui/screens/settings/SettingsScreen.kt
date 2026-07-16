@@ -20,6 +20,11 @@ import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.activity.compose.BackHandler
@@ -233,6 +238,21 @@ fun SettingsScreen(
                             .focusRequester(seekSliderFocusRequester)
                             .focusProperties { canFocus = true }
                             .onFocusChanged { isSeekSliderFocused = it.isFocused }
+                            .onKeyEvent { event ->
+                                if (event.type == KeyEventType.KeyDown) {
+                                    when (event.key) {
+                                        Key.DirectionLeft -> {
+                                            viewModel.setSeekDuration((seekDuration - 1).coerceAtLeast(5))
+                                            true
+                                        }
+                                        Key.DirectionRight -> {
+                                            viewModel.setSeekDuration((seekDuration + 1).coerceAtMost(30))
+                                            true
+                                        }
+                                        else -> false
+                                    }
+                                } else false
+                            }
                             .background(
                                 if (isSeekSliderFocused) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
                                 RoundedCornerShape(8.dp)
@@ -282,6 +302,21 @@ fun SettingsScreen(
                             .focusRequester(maxBufferFocusRequester)
                             .focusProperties { canFocus = true }
                             .onFocusChanged { isMaxBufferFocused = it.isFocused }
+                            .onKeyEvent { event ->
+                                if (event.type == KeyEventType.KeyDown) {
+                                    when (event.key) {
+                                        Key.DirectionLeft -> {
+                                            viewModel.updateBufferSettings(bufferMinDuration, (bufferMaxDuration - 10).coerceAtLeast(50))
+                                            true
+                                        }
+                                        Key.DirectionRight -> {
+                                            viewModel.updateBufferSettings(bufferMinDuration, (bufferMaxDuration + 10).coerceAtMost(300))
+                                            true
+                                        }
+                                        else -> false
+                                    }
+                                } else false
+                            }
                             .background(
                                 if (isMaxBufferFocused) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
                                 RoundedCornerShape(8.dp)
@@ -330,6 +365,21 @@ fun SettingsScreen(
                             .focusRequester(minBufferFocusRequester)
                             .focusProperties { canFocus = true }
                             .onFocusChanged { isMinBufferFocused = it.isFocused }
+                            .onKeyEvent { event ->
+                                if (event.type == KeyEventType.KeyDown) {
+                                    when (event.key) {
+                                        Key.DirectionLeft -> {
+                                            viewModel.updateBufferSettings((bufferMinDuration - 10).coerceAtLeast(20), bufferMaxDuration)
+                                            true
+                                        }
+                                        Key.DirectionRight -> {
+                                            viewModel.updateBufferSettings((bufferMinDuration + 10).coerceAtMost(150), bufferMaxDuration)
+                                            true
+                                        }
+                                        else -> false
+                                    }
+                                } else false
+                            }
                             .background(
                                 if (isMinBufferFocused) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
                                 RoundedCornerShape(8.dp)
