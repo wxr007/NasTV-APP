@@ -24,6 +24,7 @@ import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -53,6 +54,17 @@ fun SettingsScreen(
     
     var showThemeDialog by remember { mutableStateOf(false) }
 
+    val scrollState = rememberScrollState()
+    var scrollDelta by remember { mutableIntStateOf(0) }
+
+    LaunchedEffect(scrollDelta) {
+        if (scrollDelta != 0) {
+            val target = (scrollState.value + scrollDelta).coerceIn(0, scrollState.maxValue)
+            scrollState.animateScrollTo(target)
+            scrollDelta = 0
+        }
+    }
+
     // TV端遥控器退出键返回
     BackHandler { onNavigateBack() }
 
@@ -75,7 +87,25 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
                 .padding(if (isTv) 32.dp else 16.dp)
-                .verticalScroll(rememberScrollState())
+                .verticalScroll(scrollState)
+                .then(
+                    if (isTv) Modifier.onPreviewKeyEvent { event ->
+                        if (event.type == KeyEventType.KeyDown) {
+                            when (event.key) {
+                                Key.DirectionDown -> {
+                                    scrollDelta = 150
+                                    false // 不拦截，让焦点正常移动
+                                }
+                                Key.DirectionUp -> {
+                                    scrollDelta = -150
+                                    false
+                                }
+                                else -> false
+                            }
+                        } else false
+                    }
+                    else Modifier
+                )
         ) {
             // 账户信息卡片
             Text(
