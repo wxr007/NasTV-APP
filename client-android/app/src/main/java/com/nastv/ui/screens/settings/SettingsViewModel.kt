@@ -32,6 +32,12 @@ class SettingsViewModel @Inject constructor(
     private val _adBlockEnabled = MutableStateFlow(false)
     val adBlockEnabled: StateFlow<Boolean> = _adBlockEnabled.asStateFlow()
 
+    private val _bufferMaxDuration = MutableStateFlow(100)
+    val bufferMaxDuration: StateFlow<Int> = _bufferMaxDuration.asStateFlow()
+
+    private val _bufferMinDuration = MutableStateFlow(50)
+    val bufferMinDuration: StateFlow<Int> = _bufferMinDuration.asStateFlow()
+
     private val _username = MutableStateFlow<String?>(null)
     val username: StateFlow<String?> = _username.asStateFlow()
 
@@ -48,6 +54,8 @@ class SettingsViewModel @Inject constructor(
             _forceTvMode.value = preferencesRepository.forceTvModeFlow.first()
             _themeMode.value = preferencesRepository.themeModeFlow.first()
             _adBlockEnabled.value = preferencesRepository.adBlockEnabledFlow.first()
+            _bufferMaxDuration.value = preferencesRepository.bufferMaxDurationFlow.first()
+            _bufferMinDuration.value = preferencesRepository.bufferMinDurationFlow.first()
             _username.value = preferencesRepository.usernameFlow.first()
             _userRole.value = preferencesRepository.userRoleFlow.first()
             
@@ -110,6 +118,15 @@ class SettingsViewModel @Inject constructor(
         _adBlockEnabled.value = enabled
         viewModelScope.launch {
             preferencesRepository.saveAdBlockEnabled(enabled)
+        }
+    }
+
+    fun updateBufferSettings(minDuration: Int, maxDuration: Int) {
+        _bufferMinDuration.value = minDuration
+        _bufferMaxDuration.value = maxDuration
+        viewModelScope.launch {
+            preferencesRepository.saveBufferMinDuration(minDuration)
+            preferencesRepository.saveBufferMaxDuration(maxDuration)
         }
     }
 

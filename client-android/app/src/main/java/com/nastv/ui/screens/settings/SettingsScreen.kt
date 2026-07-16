@@ -1,6 +1,7 @@
 package com.nastv.ui.screens.settings
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -14,6 +15,11 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.activity.compose.BackHandler
@@ -34,6 +40,8 @@ fun SettingsScreen(
     val forceTvMode by viewModel.forceTvMode.collectAsState()
     val themeMode by viewModel.themeMode.collectAsState()
     val adBlockEnabled by viewModel.adBlockEnabled.collectAsState()
+    val bufferMaxDuration by viewModel.bufferMaxDuration.collectAsState()
+    val bufferMinDuration by viewModel.bufferMinDuration.collectAsState()
     val username by viewModel.username.collectAsState()
     val userRole by viewModel.userRole.collectAsState()
     val serverName by viewModel.serverName.collectAsState()
@@ -200,6 +208,7 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(if (isTv) 48.dp else 24.dp))
 
+            // ========== 播放设置 ==========
             Text(
                 text = "播放设置",
                 style = if (isTv) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleLarge
@@ -207,19 +216,44 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(if (isTv) 16.dp else 8.dp))
 
-            // Seek duration setting
+            // Seek duration
             Text(
                 text = "快进/快退时长：${seekDuration}秒",
                 style = if (isTv) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge
             )
+            Spacer(modifier = Modifier.height(if (isTv) 12.dp else 4.dp))
 
-            Slider(
-                value = seekDuration.toFloat(),
-                onValueChange = { viewModel.setSeekDuration(it.roundToInt()) },
-                valueRange = 5f..30f,
-                steps = 24, // 5..30 with step 1 = 25 stops = 24 steps
-                modifier = Modifier.fillMaxWidth()
-            )
+            var isSeekSliderFocused by remember { mutableStateOf(false) }
+            val seekSliderFocusRequester = remember { FocusRequester() }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (isTv) Modifier
+                            .focusRequester(seekSliderFocusRequester)
+                            .focusProperties { canFocus = true }
+                            .onFocusChanged { isSeekSliderFocused = it.isFocused }
+                            .background(
+                                if (isSeekSliderFocused) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .border(
+                                if (isSeekSliderFocused) 3.dp else 0.dp,
+                                if (isSeekSliderFocused) Color(0xFFFFD700) else Color.Transparent,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .padding(8.dp)
+                        else Modifier
+                    )
+            ) {
+                Slider(
+                    value = seekDuration.toFloat(),
+                    onValueChange = { viewModel.setSeekDuration(it.roundToInt()) },
+                    valueRange = 5f..30f,
+                    steps = 24,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -231,33 +265,153 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(if (isTv) 24.dp else 12.dp))
 
-            // 广告屏蔽开关
-            Row(
+            // 最大缓冲时长
+            Text(
+                text = "最大缓冲：${bufferMaxDuration}秒",
+                style = if (isTv) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge
+            )
+            Spacer(modifier = Modifier.height(if (isTv) 12.dp else 4.dp))
+
+            var isMaxBufferFocused by remember { mutableStateOf(false) }
+            val maxBufferFocusRequester = remember { FocusRequester() }
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = if (isTv) 16.dp else 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "广告屏蔽",
-                        style = if (isTv) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge
+                    .then(
+                        if (isTv) Modifier
+                            .focusRequester(maxBufferFocusRequester)
+                            .focusProperties { canFocus = true }
+                            .onFocusChanged { isMaxBufferFocused = it.isFocused }
+                            .background(
+                                if (isMaxBufferFocused) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .border(
+                                if (isMaxBufferFocused) 3.dp else 0.dp,
+                                if (isMaxBufferFocused) Color(0xFFFFD700) else Color.Transparent,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .padding(8.dp)
+                        else Modifier
                     )
-                    Text(
-                        text = if (adBlockEnabled) "播放时过滤 m3u8 中的广告片段" else "关闭",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+            ) {
+                Slider(
+                    value = bufferMaxDuration.toFloat(),
+                    onValueChange = { viewModel.updateBufferSettings(bufferMinDuration, it.roundToInt()) },
+                    valueRange = 50f..300f,
+                    steps = 24,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Text(
+                text = "提示: 缓冲越大播放越流畅，但占用内存越多",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+
+            Spacer(modifier = Modifier.height(if (isTv) 20.dp else 12.dp))
+
+            // 最小缓冲时长
+            Text(
+                text = "最小缓冲：${bufferMinDuration}秒",
+                style = if (isTv) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge
+            )
+            Spacer(modifier = Modifier.height(if (isTv) 12.dp else 4.dp))
+
+            var isMinBufferFocused by remember { mutableStateOf(false) }
+            val minBufferFocusRequester = remember { FocusRequester() }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .then(
+                        if (isTv) Modifier
+                            .focusRequester(minBufferFocusRequester)
+                            .focusProperties { canFocus = true }
+                            .onFocusChanged { isMinBufferFocused = it.isFocused }
+                            .background(
+                                if (isMinBufferFocused) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .border(
+                                if (isMinBufferFocused) 3.dp else 0.dp,
+                                if (isMinBufferFocused) Color(0xFFFFD700) else Color.Transparent,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .padding(8.dp)
+                        else Modifier
+                    )
+            ) {
+                Slider(
+                    value = bufferMinDuration.toFloat(),
+                    onValueChange = { viewModel.updateBufferSettings(it.roundToInt(), bufferMaxDuration) },
+                    valueRange = 20f..150f,
+                    steps = 12,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            Text(
+                text = "提示: 最小缓冲确保视频播放前有足够的缓存数据",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+
+            Spacer(modifier = Modifier.height(if (isTv) 24.dp else 12.dp))
+
+            // 广告屏蔽开关
+            var isAdBlockFocused by remember { mutableStateOf(false) }
+            val adBlockFocusRequester = remember { FocusRequester() }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = if (isTv) 8.dp else 4.dp)
+                    .then(
+                        if (isTv) Modifier
+                            .focusRequester(adBlockFocusRequester)
+                            .focusProperties { canFocus = true }
+                            .onFocusChanged { isAdBlockFocused = it.isFocused }
+                            .background(
+                                if (isAdBlockFocused) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .border(
+                                if (isAdBlockFocused) 3.dp else 0.dp,
+                                if (isAdBlockFocused) Color(0xFFFFD700) else Color.Transparent,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                        else Modifier
+                    )
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "广告屏蔽",
+                            style = if (isTv) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge
+                        )
+                        Text(
+                            text = if (adBlockEnabled) "播放时过滤 m3u8 中的广告片段" else "关闭",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = adBlockEnabled,
+                        onCheckedChange = { viewModel.setAdBlockEnabled(it) }
                     )
                 }
-                Switch(
-                    checked = adBlockEnabled,
-                    onCheckedChange = { viewModel.setAdBlockEnabled(it) }
-                )
             }
 
             Spacer(modifier = Modifier.height(if (isTv) 48.dp else 24.dp))
 
+            // ========== 图片设置 ==========
             Text(
                 text = "图片设置",
                 style = if (isTv) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleLarge
@@ -265,32 +419,57 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(if (isTv) 16.dp else 8.dp))
 
-            Row(
+            // 图片代理
+            var isImgProxyFocused by remember { mutableStateOf(false) }
+            val imgProxyFocusRequester = remember { FocusRequester() }
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = if (isTv) 16.dp else 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "图片代理",
-                        style = if (isTv) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge
+                    .padding(vertical = if (isTv) 8.dp else 4.dp)
+                    .then(
+                        if (isTv) Modifier
+                            .focusRequester(imgProxyFocusRequester)
+                            .focusProperties { canFocus = true }
+                            .onFocusChanged { isImgProxyFocused = it.isFocused }
+                            .background(
+                                if (isImgProxyFocused) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .border(
+                                if (isImgProxyFocused) 3.dp else 0.dp,
+                                if (isImgProxyFocused) Color(0xFFFFD700) else Color.Transparent,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                        else Modifier
                     )
-                    Text(
-                        text = if (useImageProxy) "通过后端代理加载图片" else "直接从CDN加载图片",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "图片代理",
+                            style = if (isTv) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge
+                        )
+                        Text(
+                            text = if (useImageProxy) "通过后端代理加载图片" else "直接从CDN加载图片",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = useImageProxy,
+                        onCheckedChange = { viewModel.setUseImageProxy(it) }
                     )
                 }
-                Switch(
-                    checked = useImageProxy,
-                    onCheckedChange = { viewModel.setUseImageProxy(it) }
-                )
             }
 
             Spacer(modifier = Modifier.height(if (isTv) 48.dp else 24.dp))
 
+            // ========== 开发设置 ==========
             Text(
                 text = "开发设置",
                 style = if (isTv) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.titleLarge
@@ -298,28 +477,52 @@ fun SettingsScreen(
 
             Spacer(modifier = Modifier.height(if (isTv) 16.dp else 8.dp))
 
-            Row(
+            // 强制TV模式
+            var isForceTvFocused by remember { mutableStateOf(false) }
+            val forceTvFocusRequester = remember { FocusRequester() }
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(vertical = if (isTv) 16.dp else 8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = "强制TV模式",
-                        style = if (isTv) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge
+                    .padding(vertical = if (isTv) 8.dp else 4.dp)
+                    .then(
+                        if (isTv) Modifier
+                            .focusRequester(forceTvFocusRequester)
+                            .focusProperties { canFocus = true }
+                            .onFocusChanged { isForceTvFocused = it.isFocused }
+                            .background(
+                                if (isForceTvFocused) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .border(
+                                if (isForceTvFocused) 3.dp else 0.dp,
+                                if (isForceTvFocused) Color(0xFFFFD700) else Color.Transparent,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                        else Modifier
                     )
-                    Text(
-                        text = if (forceTvMode) "强制使用TV布局（重启应用生效）" else "使用设备默认布局",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "强制TV模式",
+                            style = if (isTv) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge
+                        )
+                        Text(
+                            text = if (forceTvMode) "强制使用TV布局（重启应用生效）" else "使用设备默认布局",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Switch(
+                        checked = forceTvMode,
+                        onCheckedChange = { viewModel.setForceTvMode(it) }
                     )
                 }
-                Switch(
-                    checked = forceTvMode,
-                    onCheckedChange = { viewModel.setForceTvMode(it) }
-                )
             }
 
             Spacer(modifier = Modifier.height(if (isTv) 48.dp else 24.dp))
