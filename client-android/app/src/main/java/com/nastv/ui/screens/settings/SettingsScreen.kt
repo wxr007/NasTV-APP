@@ -26,6 +26,8 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInWindow
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.activity.compose.BackHandler
@@ -93,11 +95,11 @@ fun SettingsScreen(
                         if (event.type == KeyEventType.KeyDown) {
                             when (event.key) {
                                 Key.DirectionDown -> {
-                                    scrollDelta = 150
+                                    scrollDelta = 350
                                     false // 不拦截，让焦点正常移动
                                 }
                                 Key.DirectionUp -> {
-                                    scrollDelta = -150
+                                    scrollDelta = -350
                                     false
                                 }
                                 else -> false
@@ -228,6 +230,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(if (isTv) 16.dp else 12.dp))
 
             var isLogoutFocused by remember { mutableStateOf(false) }
+            var logoutYPos by remember { mutableFloatStateOf(0f) }
             val logoutFocusRequester = remember { FocusRequester() }
             Box(
                 modifier = Modifier
@@ -236,7 +239,14 @@ fun SettingsScreen(
                         if (isTv) Modifier
                             .focusRequester(logoutFocusRequester)
                             .focusProperties { canFocus = true }
-                            .onFocusChanged { isLogoutFocused = it.isFocused }
+                            .onFocusChanged { focusState ->
+                                isLogoutFocused = focusState.isFocused
+                                if (focusState.isFocused) {
+                                    val targetPx = (logoutYPos - 400).roundToInt().coerceAtLeast(0)
+                                    scrollDelta = targetPx - scrollState.value
+                                }
+                            }
+                            .onGloballyPositioned { logoutYPos = it.positionInWindow().y }
                             .clickable {
                                 viewModel.logout()
                                 onLogout()
@@ -290,6 +300,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(if (isTv) 12.dp else 4.dp))
 
             var isSeekSliderFocused by remember { mutableStateOf(false) }
+            var seekYPos by remember { mutableFloatStateOf(0f) }
             val seekSliderFocusRequester = remember { FocusRequester() }
             Box(
                 modifier = Modifier
@@ -298,7 +309,14 @@ fun SettingsScreen(
                         if (isTv) Modifier
                             .focusRequester(seekSliderFocusRequester)
                             .focusProperties { canFocus = true }
-                            .onFocusChanged { isSeekSliderFocused = it.isFocused }
+                            .onFocusChanged { focusState ->
+                                isSeekSliderFocused = focusState.isFocused
+                                if (focusState.isFocused) {
+                                    val targetPx = (seekYPos - 400).roundToInt().coerceAtLeast(0)
+                                    scrollDelta = targetPx - scrollState.value
+                                }
+                            }
+                            .onGloballyPositioned { seekYPos = it.positionInWindow().y }
                             .onKeyEvent { event ->
                                 if (event.type == KeyEventType.KeyDown) {
                                     when (event.key) {
@@ -354,6 +372,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(if (isTv) 12.dp else 4.dp))
 
             var isMaxBufferFocused by remember { mutableStateOf(false) }
+            var maxBufferYPos by remember { mutableFloatStateOf(0f) }
             val maxBufferFocusRequester = remember { FocusRequester() }
             Box(
                 modifier = Modifier
@@ -362,7 +381,14 @@ fun SettingsScreen(
                         if (isTv) Modifier
                             .focusRequester(maxBufferFocusRequester)
                             .focusProperties { canFocus = true }
-                            .onFocusChanged { isMaxBufferFocused = it.isFocused }
+                            .onFocusChanged { focusState ->
+                                isMaxBufferFocused = focusState.isFocused
+                                if (focusState.isFocused) {
+                                    val targetPx = (maxBufferYPos - 400).roundToInt().coerceAtLeast(0)
+                                    scrollDelta = targetPx - scrollState.value
+                                }
+                            }
+                            .onGloballyPositioned { maxBufferYPos = it.positionInWindow().y }
                             .onKeyEvent { event ->
                                 if (event.type == KeyEventType.KeyDown) {
                                     when (event.key) {
@@ -417,6 +443,7 @@ fun SettingsScreen(
             Spacer(modifier = Modifier.height(if (isTv) 12.dp else 4.dp))
 
             var isMinBufferFocused by remember { mutableStateOf(false) }
+            var minBufferYPos by remember { mutableFloatStateOf(0f) }
             val minBufferFocusRequester = remember { FocusRequester() }
             Box(
                 modifier = Modifier
@@ -425,7 +452,14 @@ fun SettingsScreen(
                         if (isTv) Modifier
                             .focusRequester(minBufferFocusRequester)
                             .focusProperties { canFocus = true }
-                            .onFocusChanged { isMinBufferFocused = it.isFocused }
+                            .onFocusChanged { focusState ->
+                                isMinBufferFocused = focusState.isFocused
+                                if (focusState.isFocused) {
+                                    val targetPx = (minBufferYPos - 400).roundToInt().coerceAtLeast(0)
+                                    scrollDelta = targetPx - scrollState.value
+                                }
+                            }
+                            .onGloballyPositioned { minBufferYPos = it.positionInWindow().y }
                             .onKeyEvent { event ->
                                 if (event.type == KeyEventType.KeyDown) {
                                     when (event.key) {
@@ -474,6 +508,7 @@ fun SettingsScreen(
 
             // 广告屏蔽开关
             var isAdBlockFocused by remember { mutableStateOf(false) }
+            var adBlockYPos by remember { mutableFloatStateOf(0f) }
             val adBlockFocusRequester = remember { FocusRequester() }
             Box(
                 modifier = Modifier
@@ -483,7 +518,14 @@ fun SettingsScreen(
                         if (isTv) Modifier
                             .focusRequester(adBlockFocusRequester)
                             .focusProperties { canFocus = true }
-                            .onFocusChanged { isAdBlockFocused = it.isFocused }
+                            .onFocusChanged { focusState ->
+                                isAdBlockFocused = focusState.isFocused
+                                if (focusState.isFocused) {
+                                    val targetPx = (adBlockYPos - 400).roundToInt().coerceAtLeast(0)
+                                    scrollDelta = targetPx - scrollState.value
+                                }
+                            }
+                            .onGloballyPositioned { adBlockYPos = it.positionInWindow().y }
                             .background(
                                 if (isAdBlockFocused) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
                                 RoundedCornerShape(8.dp)
@@ -532,6 +574,7 @@ fun SettingsScreen(
 
             // 图片代理
             var isImgProxyFocused by remember { mutableStateOf(false) }
+            var imgProxyYPos by remember { mutableFloatStateOf(0f) }
             val imgProxyFocusRequester = remember { FocusRequester() }
             Box(
                 modifier = Modifier
@@ -541,7 +584,14 @@ fun SettingsScreen(
                         if (isTv) Modifier
                             .focusRequester(imgProxyFocusRequester)
                             .focusProperties { canFocus = true }
-                            .onFocusChanged { isImgProxyFocused = it.isFocused }
+                            .onFocusChanged { focusState ->
+                                isImgProxyFocused = focusState.isFocused
+                                if (focusState.isFocused) {
+                                    val targetPx = (imgProxyYPos - 400).roundToInt().coerceAtLeast(0)
+                                    scrollDelta = targetPx - scrollState.value
+                                }
+                            }
+                            .onGloballyPositioned { imgProxyYPos = it.positionInWindow().y }
                             .background(
                                 if (isImgProxyFocused) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
                                 RoundedCornerShape(8.dp)
