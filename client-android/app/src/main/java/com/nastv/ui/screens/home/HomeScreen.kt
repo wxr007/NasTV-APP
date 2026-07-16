@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Storage
@@ -253,15 +254,28 @@ fun HomeScreen(
                                     sourceDropdownExpanded = false
                                 }
                         ) {
-                            Text(
-                                text = source.name,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = if (source.id == selectedSource?.id)
-                                    MaterialTheme.colorScheme.primary
-                                else
-                                    MaterialTheme.colorScheme.onSurface,
+                            val nameColor = if (source.id == selectedSource?.id)
+                                MaterialTheme.colorScheme.primary
+                            else
+                                MaterialTheme.colorScheme.onSurface
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center,
                                 modifier = Modifier.padding(vertical = 12.dp, horizontal = 8.dp)
-                            )
+                            ) {
+                                Icon(
+                                    imageVector = if (source.frontendProxy) Icons.Default.PhoneAndroid else Icons.Default.Storage,
+                                    contentDescription = if (source.frontendProxy) "前端代理" else "后端代理",
+                                    tint = nameColor,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = source.name,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = nameColor,
+                                )
+                            }
                         }
                     }
                 }

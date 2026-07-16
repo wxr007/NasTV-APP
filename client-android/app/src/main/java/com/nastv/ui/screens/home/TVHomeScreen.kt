@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -214,11 +215,24 @@ fun TVHomeScreen(
                                     .padding(vertical = 12.dp, horizontal = 8.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text(
-                                    text = source.name,
-                                    color = if (source.id == selectedSource?.id) Color(0xFFFFD700) else Color.White,
-                                    style = MaterialTheme.typography.bodyMedium
-                                )
+                                val nameColor = if (source.id == selectedSource?.id) Color(0xFFFFD700) else Color.White
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
+                                ) {
+                                    Icon(
+                                        imageVector = if (source.frontendProxy) Icons.Default.PhoneAndroid else Icons.Default.Storage,
+                                        contentDescription = if (source.frontendProxy) "前端代理" else "后端代理",
+                                        tint = nameColor,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        text = source.name,
+                                        color = nameColor,
+                                        style = MaterialTheme.typography.bodyMedium
+                                    )
+                                }
                             }
                         }
                     }

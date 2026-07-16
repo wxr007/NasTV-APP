@@ -15,5 +15,8 @@ data class VideoSource(
     val url: String,
 
     @Json(name = "enabled")
-    val enabled: Boolean
+    val enabled: Boolean,
+
+    @Json(name = "frontendProxy")
+    val frontendProxy: Boolean = false
 )
