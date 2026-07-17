@@ -3,6 +3,7 @@ package com.nastv.ui.screens.home
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nastv.ui.components.TVVideoCard
 import android.widget.Toast
+import android.util.Log
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -67,7 +69,6 @@ fun TVHomeScreen(
         List(parentCategories.size + 1) { FocusRequester() } // +1 for "全部"
     }
     var isGridFocused by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
     var lastFocusedRow by remember { mutableIntStateOf(-1) }
 
     // 当焦点在海报墙上时，按返回键先移动焦点到当前选中的类型
@@ -122,6 +123,38 @@ fun TVHomeScreen(
     }
 
     val listState = rememberLazyListState()
+
+    // 焦点行居中滚动（在 LaunchedEffect 中执行，避免组合阶段的 MutationInterruptedException）
+    LaunchedEffect(lastFocusedRow) {
+        if (lastFocusedRow >= 0) {
+            try {
+                if (lastFocusedRow == 0) {
+                    // 首行：滚动回顶部
+                    listState.animateScrollToItem(0)
+                } else {
+                    // 等待布局稳定后直接计算居中偏移
+                    delay(100)
+                    val info = listState.layoutInfo
+                    val item = info.visibleItemsInfo.find { it.index == lastFocusedRow }
+                    if (item != null) {
+                        val vpHeight = info.viewportEndOffset - info.viewportStartOffset
+                        val itemTopInVp = item.offset - info.viewportStartOffset
+                        val targetTop = (vpHeight - item.size) / 2f
+                        val delta = itemTopInVp - targetTop
+                        Log.d("TVHomeScreen", "居中: row=$lastFocusedRow vp=$vpHeight itemH=${item.size} topInVp=$itemTopInVp targetTop=$targetTop delta=$delta")
+                        if (kotlin.math.abs(delta) > 10f) {
+                            listState.animateScrollBy(delta)
+                            Log.d("TVHomeScreen", "animateScrollBy完成: delta=$delta")
+                        }
+                    } else {
+                        Log.d("TVHomeScreen", "居中失败: row=$lastFocusedRow 不在可见范围")
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("TVHomeScreen", "居中异常: row=$lastFocusedRow", e)
+            }
+        }
+    }
 
     // 焦点恢复目标索引（-1 表示不需要恢复）。滚动完成后才设置，确保卡片已渲染
     var focusTargetIndex by remember { mutableStateOf(-1) }
@@ -318,17 +351,6 @@ fun TVHomeScreen(
                                     onFocusGained = {
                                         if (rowIndex != lastFocusedRow) {
                                             lastFocusedRow = rowIndex
-                                            scope.launch {
-                                                val layoutInfo = listState.layoutInfo
-                                                val visibleItems = layoutInfo.visibleItemsInfo
-                                                if (visibleItems.isNotEmpty()) {
-                                                    val avgItemHeight = visibleItems.map { it.size }.average().toInt()
-                                                    val viewportHeight = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
-                                                    val visibleRows = if (avgItemHeight > 0) viewportHeight / avgItemHeight else 1
-                                                    val targetRow = (rowIndex - visibleRows / 2).coerceAtLeast(0)
-                                                    listState.animateScrollToItem(targetRow)
-                                                }
-                                            }
                                         }
                                     }
                                 )
