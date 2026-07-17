@@ -315,7 +315,7 @@ fun AddServerDialog(
                         testResult = null
                     },
                     label = { Text("服务器地址") },
-                    placeholder = { Text("http://192.168.1.100:3000") },
+                    placeholder = { Text("http://192.168.0.12:3600") },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     shape = RoundedCornerShape(8.dp),

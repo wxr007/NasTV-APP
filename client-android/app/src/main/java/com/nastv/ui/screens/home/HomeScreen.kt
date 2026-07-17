@@ -139,7 +139,7 @@ fun HomeScreen(
                     TvFilterChip(
                         selected = selectedParentCategory == null,
                         onClick = { viewModel.selectParentCategory(null) },
-                        label = "全部",
+                        label = "更新",
                         isTv = isTv
                     )
                 }

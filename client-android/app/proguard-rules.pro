@@ -12,6 +12,9 @@
     <methods>;
 }
 
+# Keep API request/response classes
+-keep class com.nastv.data.api.** { *; }
+
 # Retrofit
 -dontwarn retrofit2.**
 -keep class retrofit2.** { *; }

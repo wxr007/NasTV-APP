@@ -2,6 +2,8 @@ package com.nastv.data.api
 
 import com.nastv.data.model.ApiResponse
 import com.nastv.data.model.User
+import com.squareup.moshi.Json
+import com.squareup.moshi.JsonClass
 import retrofit2.http.Body
 import retrofit2.http.POST
 
@@ -17,7 +19,8 @@ interface AuthApi {
     ): ApiResponse<User>
 }
 
+@JsonClass(generateAdapter = true)
 data class LoginRequest(
-    val username: String,
-    val password: String
+    @Json(name = "username") val username: String,
+    @Json(name = "password") val password: String
 )

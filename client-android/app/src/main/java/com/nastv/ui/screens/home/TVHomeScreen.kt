@@ -289,7 +289,7 @@ fun TVHomeScreen(
                     TvFilterChip(
                         selected = selectedParentCategory == null,
                         onClick = { viewModel.selectParentCategory(null) },
-                        label = "全部",
+                        label = "更新",
                         modifier = Modifier.focusRequester(categoryFocusRequesters[0])
                     )
                 }
@@ -304,7 +304,7 @@ fun TVHomeScreen(
             }
         }
         if (subCategories.isNotEmpty()) {
-            LazyRow(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            LazyRow(modifier = Modifier.fillMaxWidth(), contentPadding = PaddingValues(horizontal = spacing, vertical = 2.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 item { TvFilterChip(selected = selectedSubCategory == null, onClick = { viewModel.selectSubCategory(null) }, label = "全部") }
                 items(items = subCategories) { category ->
                     TvFilterChip(selected = category == selectedSubCategory, onClick = { viewModel.selectSubCategory(category) }, label = category.name)
