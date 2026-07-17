@@ -163,8 +163,8 @@ fun FavoritesScreen(
                         state = listState,
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(paddingValues)
-                            .padding(16.dp),
+                            .padding(paddingValues),
+                        contentPadding = PaddingValues(spacing),
                         verticalArrangement = Arrangement.spacedBy(spacing)
                     ) {
                         itemsIndexed(

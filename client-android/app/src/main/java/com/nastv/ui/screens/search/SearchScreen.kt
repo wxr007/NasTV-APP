@@ -196,7 +196,7 @@ fun SearchScreen(
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(16.dp),
+                        contentPadding = PaddingValues(spacing),
                         verticalArrangement = Arrangement.spacedBy(spacing)
                     ) {
                         items(rows) { rowVideos ->

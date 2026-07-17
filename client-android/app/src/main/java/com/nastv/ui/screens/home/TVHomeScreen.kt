@@ -41,7 +41,6 @@ import android.util.Log
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TVHomeScreen(
     onNavigateToPlay: (String, String) -> Unit,
@@ -201,25 +200,27 @@ fun TVHomeScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        TopAppBar(
-            title = {
-                TvSourceButton(
-                    sourceName = selectedSource?.name ?: "选择源",
-                    onClick = { sourceDropdownExpanded = true }
-                )
-            },
-            actions = {
-                Box(modifier = Modifier.padding(end = 40.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
-                        TvIconButton(onClick = onNavigateToSearch, icon = Icons.Default.Search, contentDescription = "Search")
-                        TvIconButton(onClick = onNavigateToFavorites, icon = Icons.Default.Favorite, contentDescription = "Favorites")
-                        TvIconButton(onClick = onNavigateToHistory, icon = Icons.Default.History, contentDescription = "History")
-                        TvIconButton(onClick = onNavigateToCache, icon = Icons.Default.Storage, contentDescription = "Cache")
-                        TvIconButton(onClick = onNavigateToSettings, icon = Icons.Default.Settings, contentDescription = "Settings")
-                    }
-                }
+        // 自定义顶栏：与海报墙对齐（水平 padding = spacing）
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(MaterialTheme.colorScheme.surface)
+                .padding(horizontal = spacing, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            TvSourceButton(
+                sourceName = selectedSource?.name ?: "选择源",
+                onClick = { sourceDropdownExpanded = true }
+            )
+            Spacer(modifier = Modifier.weight(1f))
+            Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+                TvIconButton(onClick = onNavigateToSearch, icon = Icons.Default.Search, contentDescription = "Search")
+                TvIconButton(onClick = onNavigateToFavorites, icon = Icons.Default.Favorite, contentDescription = "Favorites")
+                TvIconButton(onClick = onNavigateToHistory, icon = Icons.Default.History, contentDescription = "History")
+                TvIconButton(onClick = onNavigateToCache, icon = Icons.Default.Storage, contentDescription = "Cache")
+                TvIconButton(onClick = onNavigateToSettings, icon = Icons.Default.Settings, contentDescription = "Settings")
             }
-        )
+        }
 
         // 站源选择弹窗
         if (sourceDropdownExpanded) {
@@ -281,7 +282,7 @@ fun TVHomeScreen(
         if (parentCategories.isNotEmpty()) {
             LazyRow(
                 modifier = Modifier.fillMaxWidth(),
-                contentPadding = PaddingValues(horizontal = 16.dp, vertical = 2.dp),
+                contentPadding = PaddingValues(horizontal = spacing, vertical = 2.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 item {
