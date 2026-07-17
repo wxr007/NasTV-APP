@@ -49,7 +49,8 @@ fun TVVideoCard(
     onLongClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     shouldAutoFocus: Boolean = false,
-    sourceName: String? = null
+    sourceName: String? = null,
+    onFocusGained: (() -> Unit)? = null,
 ) {
     var isFocused by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
@@ -77,6 +78,9 @@ fun TVVideoCard(
             .focusProperties { canFocus = true }
             .onFocusChanged { focusState ->
                 isFocused = focusState.isFocused
+                if (focusState.isFocused) {
+                    onFocusGained?.invoke()
+                }
             }
             .combinedClickable(
                 interactionSource = remember { MutableInteractionSource() },

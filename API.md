@@ -34,7 +34,7 @@ GET /api/sources
 ```
 响应：
 ```json
-{ "code": 0, "data": [{ "id": "dyttzyapi", "name": "天堂资源", "url": "http://...", "enabled": true }] }
+{ "code": 0, "data": [{ "id": "dyttzyapi", "name": "天堂资源", "url": "http://...", "enabled": true, "posterOrientation": "portrait", "frontendProxy": false }] }
 ```
 说明：普通用户只返回其访问源列表中的源；管理员和未登录用户返回所有源。
 
@@ -976,6 +976,8 @@ interface VideoSource {
   name: string;
   url: string;
   enabled: boolean;
+  posterOrientation?: 'portrait' | 'landscape';
+  frontendProxy?: boolean;
 }
 
 interface Category {

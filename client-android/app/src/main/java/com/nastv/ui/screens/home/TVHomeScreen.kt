@@ -36,6 +36,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.nastv.ui.components.TVVideoCard
 import android.widget.Toast
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -66,6 +67,8 @@ fun TVHomeScreen(
         List(parentCategories.size + 1) { FocusRequester() } // +1 for "全部"
     }
     var isGridFocused by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
+    var lastFocusedRow by remember { mutableIntStateOf(-1) }
 
     // 当焦点在海报墙上时，按返回键先移动焦点到当前选中的类型
     BackHandler(enabled = isGridFocused) {
@@ -112,7 +115,7 @@ fun TVHomeScreen(
     }
 
     val columns = 5
-    val spacing = 16.dp
+    val spacing = 32.dp
 
     val rows by remember(videos, columns) {
         derivedStateOf { videos.chunked(columns) }
@@ -311,7 +314,23 @@ fun TVHomeScreen(
                                         onNavigateToPlay(video.sourceId, video.id)
                                     },
                                     modifier = Modifier.weight(1f),
-                                    shouldAutoFocus = videoIndex == focusTargetIndex
+                                    shouldAutoFocus = videoIndex == focusTargetIndex,
+                                    onFocusGained = {
+                                        if (rowIndex != lastFocusedRow) {
+                                            lastFocusedRow = rowIndex
+                                            scope.launch {
+                                                val layoutInfo = listState.layoutInfo
+                                                val visibleItems = layoutInfo.visibleItemsInfo
+                                                if (visibleItems.isNotEmpty()) {
+                                                    val avgItemHeight = visibleItems.map { it.size }.average().toInt()
+                                                    val viewportHeight = layoutInfo.viewportEndOffset - layoutInfo.viewportStartOffset
+                                                    val visibleRows = if (avgItemHeight > 0) viewportHeight / avgItemHeight else 1
+                                                    val targetRow = (rowIndex - visibleRows / 2).coerceAtLeast(0)
+                                                    listState.animateScrollToItem(targetRow)
+                                                }
+                                            }
+                                        }
+                                    }
                                 )
                             }
                             val remaining = columns - rowVideos.size
