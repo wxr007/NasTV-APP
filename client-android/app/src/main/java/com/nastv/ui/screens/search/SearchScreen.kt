@@ -1,6 +1,7 @@
 package com.nastv.ui.screens.search
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -22,8 +23,11 @@ import androidx.activity.compose.BackHandler
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nastv.ui.components.TVVideoCard
 import com.nastv.ui.components.VideoCard
+import com.nastv.ui.config.GridDefaults
 import com.nastv.ui.theme.LocalIsTv
+import android.util.Log
 import kotlinx.coroutines.delay
+import kotlin.math.abs
 
 @Composable
 fun SearchScreen(
@@ -128,14 +132,15 @@ fun SearchScreen(
             searchResults.isNotEmpty() -> {
                 if (isTv) {
                     // TV 模式：使用 LazyColumn + Row 手动网格（解决焦点导航问题）
-                    val columns = 5
-                    val spacing = 16.dp
+                    val columns = GridDefaults.TV_COLUMNS
+                    val spacing = GridDefaults.TV_SPACING
                     val rows = searchResults.chunked(columns)
                     val listState = rememberLazyListState()
 
                     // 焦点恢复目标索引（-1 表示不需要恢复）
                     var focusTargetIndex by remember { mutableStateOf(-1) }
                     var isRestoringScroll by remember { mutableStateOf(false) }
+                    var lastFocusedRow by remember { mutableIntStateOf(-1) }
 
                     // 保存滚动位置（恢复期间跳过）
                     LaunchedEffect(listState) {
@@ -162,6 +167,32 @@ fun SearchScreen(
                         }
                     }
 
+                    // 焦点行居中滚动
+                    LaunchedEffect(lastFocusedRow) {
+                        if (lastFocusedRow >= 0) {
+                            try {
+                                if (lastFocusedRow == 0) {
+                                    listState.animateScrollToItem(0)
+                                } else {
+                                    delay(100)
+                                    val info = listState.layoutInfo
+                                    val item = info.visibleItemsInfo.find { it.index == lastFocusedRow }
+                                    if (item != null) {
+                                        val vpHeight = info.viewportEndOffset - info.viewportStartOffset
+                                        val itemTopInVp = item.offset - info.viewportStartOffset
+                                        val targetTop = (vpHeight - item.size) / 2f
+                                        val delta = itemTopInVp - targetTop
+                                        if (abs(delta) > 10f) {
+                                            listState.animateScrollBy(delta)
+                                        }
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e("SearchScreen", "居中异常", e)
+                            }
+                        }
+                    }
+
                     LazyColumn(
                         state = listState,
                         modifier = Modifier.fillMaxSize(),
@@ -174,7 +205,8 @@ fun SearchScreen(
                                 horizontalArrangement = Arrangement.spacedBy(spacing)
                             ) {
                                 rowVideos.forEachIndexed { colIndex, video ->
-                                    val videoIndex = (rows.indexOf(rowVideos) * columns) + colIndex
+                                    val rowIdx = rows.indexOf(rowVideos)
+                                    val videoIndex = rowIdx * columns + colIndex
                                     TVVideoCard(
                                         video = video,
                                         onClick = {
@@ -183,7 +215,8 @@ fun SearchScreen(
                                         },
                                         modifier = Modifier.weight(1f),
                                         shouldAutoFocus = videoIndex == focusTargetIndex,
-                                        sourceName = sourceNameMap[video.sourceId]
+                                        sourceName = sourceNameMap[video.sourceId],
+                                        onFocusGained = { if (rowIdx != lastFocusedRow) { lastFocusedRow = rowIdx } }
                                     )
                                 }
                                 // 填充剩余空间

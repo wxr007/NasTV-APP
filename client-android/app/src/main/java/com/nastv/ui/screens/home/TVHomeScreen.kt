@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nastv.ui.components.TVVideoCard
+import com.nastv.ui.config.GridDefaults
 import android.widget.Toast
 import android.util.Log
 import kotlinx.coroutines.delay
@@ -115,8 +116,8 @@ fun TVHomeScreen(
         }
     }
 
-    val columns = 5
-    val spacing = 32.dp
+    val columns = GridDefaults.TV_COLUMNS
+    val spacing = GridDefaults.TV_SPACING
 
     val rows by remember(videos, columns) {
         derivedStateOf { videos.chunked(columns) }

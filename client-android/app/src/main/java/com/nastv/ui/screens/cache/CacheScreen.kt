@@ -1,6 +1,7 @@
 package com.nastv.ui.screens.cache
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -27,8 +28,11 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.nastv.data.model.Video
 import com.nastv.ui.components.TVVideoCard
 import com.nastv.ui.components.VideoCard
+import com.nastv.ui.config.GridDefaults
 import com.nastv.ui.theme.LocalIsTv
+import android.util.Log
 import kotlinx.coroutines.delay
+import kotlin.math.abs
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -101,14 +105,15 @@ fun CacheScreen(
             else -> {
                 if (isTv) {
                     // TV 模式：使用 LazyColumn + Row 手动网格（解决焦点导航问题）
-                    val columns = 5
-                    val spacing = 16.dp
+                    val columns = GridDefaults.TV_COLUMNS
+                    val spacing = GridDefaults.TV_SPACING
                     val rows = videos.chunked(columns)
                     val listState = rememberLazyListState()
 
                     // 焦点恢复目标索引（-1 表示不需要恢复）
                     var focusTargetIndex by remember { mutableStateOf(-1) }
                     var isRestoringScroll by remember { mutableStateOf(false) }
+                    var lastFocusedRow by remember { mutableIntStateOf(-1) }
 
                     // 保存滚动位置（恢复期间跳过）
                     LaunchedEffect(listState) {
@@ -132,6 +137,32 @@ fun CacheScreen(
                             delay(200)
                             isRestoringScroll = false
                             focusTargetIndex = savedIndex
+                        }
+                    }
+
+                    // 焦点行居中滚动
+                    LaunchedEffect(lastFocusedRow) {
+                        if (lastFocusedRow >= 0) {
+                            try {
+                                if (lastFocusedRow == 0) {
+                                    listState.animateScrollToItem(0)
+                                } else {
+                                    delay(100)
+                                    val info = listState.layoutInfo
+                                    val item = info.visibleItemsInfo.find { it.index == lastFocusedRow }
+                                    if (item != null) {
+                                        val vpHeight = info.viewportEndOffset - info.viewportStartOffset
+                                        val itemTopInVp = item.offset - info.viewportStartOffset
+                                        val targetTop = (vpHeight - item.size) / 2f
+                                        val delta = itemTopInVp - targetTop
+                                        if (abs(delta) > 10f) {
+                                            listState.animateScrollBy(delta)
+                                        }
+                                    }
+                                }
+                            } catch (e: Exception) {
+                                Log.e("CacheScreen", "居中异常", e)
+                            }
                         }
                     }
 
@@ -167,7 +198,8 @@ fun CacheScreen(
                                                 onNavigateToPlay(cachedVideo.sourceId, cachedVideo.videoId)
                                             },
                                             shouldAutoFocus = videoIndex == focusTargetIndex,
-                                            sourceName = sourceNameMap[cachedVideo.sourceId]
+                                            sourceName = sourceNameMap[cachedVideo.sourceId],
+                                            onFocusGained = { if (rowIndex != lastFocusedRow) { lastFocusedRow = rowIndex } }
                                         )
                                         // 左上角缓存集数角标
                                         if (cachedVideo.cachedCount > 0) {
