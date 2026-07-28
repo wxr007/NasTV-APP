@@ -66,8 +66,10 @@ class LoginViewModel @Inject constructor(
             _loginState.value = LoginState.Loading
             
             // 先保存服务器URL到PreferencesRepository，供API调用使用
-            val serverData = _server.value
+            // 确保 server 数据已加载（解决 loadServer 协程未完成时的竞态问题）
+            val serverData = _server.value ?: serverRepository.getServerById(account.serverId)
             if (serverData != null) {
+                _server.value = serverData
                 preferencesRepository.saveServerUrl(serverData.url)
                 // 同步更新ImageUrlHelper，确保登录后图片能正确加载
                 ImageUrlHelper.setBaseUrl(serverData.url)

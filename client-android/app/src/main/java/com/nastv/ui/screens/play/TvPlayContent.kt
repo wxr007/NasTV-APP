@@ -353,10 +353,10 @@ fun TvPlayContent(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .focusProperties { canFocus = false },
-                            playedColor = Color.White,
-                            bufferedColor = Color(0xFF4CAF50),
-                            unplayedColor = Color.White.copy(alpha = 0.3f),
-                            thumbColor = Color.White
+                            playedColor = Color(0xFFFF4081),
+                            bufferedColor = Color(0xFF81C784),
+                            unplayedColor = Color.Gray.copy(alpha = 0.3f),
+                            thumbColor = Color(0xFFFF4081)
                         )
                         Row(
                             modifier = Modifier.fillMaxWidth(),
