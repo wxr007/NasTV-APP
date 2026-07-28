@@ -628,6 +628,7 @@ fun PlayScreen(
                             adBlockEnabled = adBlockEnabled,
                             onToggleAdBlock = { viewModel.setAdBlockEnabled(it) },
                             seekDuration = seekDuration,
+                            onUpdateSeekDuration = { viewModel.setSeekDuration(it) },
                         )
                     } else {
                         // 手机端布局

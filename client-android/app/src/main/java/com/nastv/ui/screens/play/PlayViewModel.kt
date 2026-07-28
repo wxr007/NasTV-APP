@@ -100,6 +100,13 @@ class PlayViewModel @Inject constructor(
         }
     }
 
+    fun setSeekDuration(seconds: Int) {
+        _seekDuration.value = seconds
+        viewModelScope.launch {
+            preferencesRepository.saveSeekDuration(seconds)
+        }
+    }
+
     fun getAdBlockStrings(): List<String> = _adBlockStrings.value
 
     fun loadAdBlockStrings() {

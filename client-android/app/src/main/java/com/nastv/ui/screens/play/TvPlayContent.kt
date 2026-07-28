@@ -95,6 +95,7 @@ fun TvPlayContent(
     adBlockEnabled: Boolean = false,
     onToggleAdBlock: (Boolean) -> Unit = {},
     seekDuration: Int = 10,
+    onUpdateSeekDuration: (Int) -> Unit = {},
 ) {
     var sortAscending by remember { mutableStateOf(true) }
     var isPlayerMaximized by remember { mutableStateOf(false) }
@@ -102,9 +103,8 @@ fun TvPlayContent(
     var showDescriptionDialog by remember { mutableStateOf(false) }
     var isEpisodeFocused by remember { mutableStateOf(false) }
     var showSettingsDrawer by remember { mutableStateOf(false) }
-    var tempBufferMax by remember { mutableStateOf(bufferMaxDuration) }
-    var tempBufferMin by remember { mutableStateOf(bufferMinDuration) }
     var debugRepeatCount by remember { mutableIntStateOf(0) }
+    var tempSeekDuration by remember { mutableIntStateOf(seekDuration) }
 
     val maximizedFocusRequester = remember { FocusRequester() }
     val playerFocusRequester = remember { FocusRequester() }
@@ -330,6 +330,7 @@ fun TvPlayContent(
                 Box(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
+                        .padding(8.dp)
                         .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
@@ -340,33 +341,46 @@ fun TvPlayContent(
                     )
                 }
 
+                // 左上角显示视频分辨率（controls可见时）
+                if (controlsVisible) {
+                    val resolutionText = exoPlayer.videoFormat?.let { "${it.width}x${it.height}" } ?: ""
+                    if (resolutionText.isNotEmpty()) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.TopStart)
+                                .padding(8.dp)
+                                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                                .padding(horizontal = 8.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = resolutionText,
+                                color = Color.White,
+                                fontSize = 12.sp
+                            )
+                        }
+                    }
+                }
+
                 // 用户主动暂停时显示播放图标 + 时间（缓冲时不显示）
                 if (!isPlaying && !isBuffering && !controlsVisible) {
                     Column(
-                        modifier = Modifier.align(Alignment.Center),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                            .padding(horizontal = 32.dp, vertical = 20.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .size(80.dp)
-                                .background(Color.Black.copy(alpha = 0.4f), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.PlayArrow,
-                                contentDescription = "已暂停",
-                                tint = Color.White.copy(alpha = 0.8f),
-                                modifier = Modifier.size(48.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Icon(
+                            imageVector = Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            tint = Color.White,
+                            modifier = Modifier.size(48.dp)
+                        )
                         Text(
                             text = "${formatTime(currentPosition)} / ${formatTime(totalDuration)}",
                             style = MaterialTheme.typography.bodyLarge,
-                            color = Color.White.copy(alpha = 0.8f),
-                            modifier = Modifier
-                                .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
-                                .padding(horizontal = 12.dp, vertical = 6.dp)
+                            color = Color.White
                         )
                     }
                 }
@@ -406,32 +420,25 @@ fun TvPlayContent(
                     }
 
                     if (!isPlaying && !isBuffering) {
-                        // 暂停时：大图标 + 时间
+                        // 暂停时：图标 + 时间
                         Column(
-                            modifier = Modifier.align(Alignment.Center),
-                            horizontalAlignment = Alignment.CenterHorizontally
+                            modifier = Modifier
+                                .align(Alignment.Center)
+                                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
+                                .padding(horizontal = 32.dp, vertical = 20.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(80.dp)
-                                    .background(Color.Black.copy(alpha = 0.4f), CircleShape),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.PlayArrow,
-                                    contentDescription = "已暂停",
-                                    tint = Color.White.copy(alpha = 0.8f),
-                                    modifier = Modifier.size(48.dp)
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(48.dp)
+                            )
                             Text(
                                 text = "${formatTime(currentPosition)} / ${formatTime(totalDuration)}",
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = Color.White.copy(alpha = 0.8f),
-                                modifier = Modifier
-                                    .background(Color.Black.copy(alpha = 0.4f), RoundedCornerShape(6.dp))
-                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                                color = Color.White
                             )
                         }
                     } else if (isPlaying) {
@@ -566,6 +573,7 @@ fun TvPlayContent(
                         Box(
                             modifier = Modifier
                                 .align(Alignment.TopEnd)
+                                .padding(8.dp)
                                 .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
                                 .padding(horizontal = 8.dp, vertical = 4.dp)
                         ) {
@@ -574,6 +582,26 @@ fun TvPlayContent(
                                 color = Color.White,
                                 fontSize = 12.sp
                             )
+                        }
+
+                        // 左上角显示视频分辨率（controls可见时）
+                        if (controlsVisible) {
+                            val resolutionText = exoPlayer.videoFormat?.let { "${it.width}x${it.height}" } ?: ""
+                            if (resolutionText.isNotEmpty()) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopStart)
+                                        .padding(8.dp)
+                                        .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = resolutionText,
+                                        color = Color.White,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
                         }
 
                         if (controlsVisible) {
@@ -1094,38 +1122,37 @@ fun TvPlayContent(
                         )
                         Spacer(modifier = Modifier.height(24.dp))
 
-                        // 缓冲设置
+                        // 快进快退时长
                         Text(
-                            text = "缓冲配置",
+                            text = "快进快退时长",
                             style = MaterialTheme.typography.titleMedium,
                             color = Color.White
                         )
                         Spacer(modifier = Modifier.height(16.dp))
 
-                        // 最大缓冲时长
                         Text(
-                            text = "最大缓冲: ${tempBufferMax}秒",
+                            text = "时长: ${tempSeekDuration}秒",
                             style = MaterialTheme.typography.bodyLarge,
                             color = Color.White
                         )
                         Spacer(modifier = Modifier.height(8.dp))
-                        var isSliderFocused by remember { mutableStateOf(false) }
-                        val sliderFocusRequester = remember { FocusRequester() }
+                        var isSeekSliderFocused by remember { mutableStateOf(false) }
+                        val seekSliderFocusRequester = remember { FocusRequester() }
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .focusRequester(sliderFocusRequester)
+                                .focusRequester(seekSliderFocusRequester)
                                 .focusProperties { canFocus = true }
-                                .onFocusChanged { isSliderFocused = it.isFocused }
+                                .onFocusChanged { isSeekSliderFocused = it.isFocused }
                                 .onKeyEvent { event ->
                                     if (event.type == KeyEventType.KeyDown) {
                                         when (event.key) {
                                             Key.DirectionLeft -> {
-                                                tempBufferMax = (tempBufferMax - 10).coerceAtLeast(50)
+                                                tempSeekDuration = (tempSeekDuration - 5).coerceAtLeast(5)
                                                 true
                                             }
                                             Key.DirectionRight -> {
-                                                tempBufferMax = (tempBufferMax + 10).coerceAtMost(300)
+                                                tempSeekDuration = (tempSeekDuration + 5).coerceAtMost(60)
                                                 true
                                             }
                                             else -> false
@@ -1133,21 +1160,21 @@ fun TvPlayContent(
                                     } else false
                                 }
                                 .background(
-                                    if (isSliderFocused) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
+                                    if (isSeekSliderFocused) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
                                     RoundedCornerShape(8.dp)
                                 )
                                 .border(
-                                    if (isSliderFocused) 3.dp else 0.dp,
-                                    if (isSliderFocused) Color(0xFFFFD700) else Color.Transparent,
+                                    if (isSeekSliderFocused) 3.dp else 0.dp,
+                                    if (isSeekSliderFocused) Color(0xFFFFD700) else Color.Transparent,
                                     RoundedCornerShape(8.dp)
                                 )
                                 .padding(8.dp)
                         ) {
                             Slider(
-                                value = tempBufferMax.toFloat(),
-                                onValueChange = { tempBufferMax = it.toInt() },
-                                valueRange = 50f..300f,
-                                steps = 24,
+                                value = tempSeekDuration.toFloat(),
+                                onValueChange = { tempSeekDuration = it.toInt() },
+                                valueRange = 5f..60f,
+                                steps = 10,
                                 modifier = Modifier.fillMaxWidth(),
                                 colors = SliderDefaults.colors(
                                     thumbColor = Color(0xFFFFD700),
@@ -1159,70 +1186,7 @@ fun TvPlayContent(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-                            text = "提示: 缓冲越大播放越流畅，但占用内存越多",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.6f)
-                        )
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        // 最小缓冲时长
-                        Text(
-                            text = "最小缓冲: ${tempBufferMin}秒",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = Color.White
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        var isMinSliderFocused by remember { mutableStateOf(false) }
-                        val minSliderFocusRequester = remember { FocusRequester() }
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .focusRequester(minSliderFocusRequester)
-                                .focusProperties { canFocus = true }
-                                .onFocusChanged { isMinSliderFocused = it.isFocused }
-                                .onKeyEvent { event ->
-                                    if (event.type == KeyEventType.KeyDown) {
-                                        when (event.key) {
-                                            Key.DirectionLeft -> {
-                                                tempBufferMin = (tempBufferMin - 10).coerceAtLeast(20)
-                                                true
-                                            }
-                                            Key.DirectionRight -> {
-                                                tempBufferMin = (tempBufferMin + 10).coerceAtMost(150)
-                                                true
-                                            }
-                                            else -> false
-                                        }
-                                    } else false
-                                }
-                                .background(
-                                    if (isMinSliderFocused) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
-                                    RoundedCornerShape(8.dp)
-                                )
-                                .border(
-                                    if (isMinSliderFocused) 3.dp else 0.dp,
-                                    if (isMinSliderFocused) Color(0xFFFFD700) else Color.Transparent,
-                                    RoundedCornerShape(8.dp)
-                                )
-                                .padding(8.dp)
-                        ) {
-                            Slider(
-                                value = tempBufferMin.toFloat(),
-                                onValueChange = { tempBufferMin = it.toInt() },
-                                valueRange = 20f..150f,
-                                steps = 12,
-                                modifier = Modifier.fillMaxWidth(),
-                                colors = SliderDefaults.colors(
-                                    thumbColor = Color(0xFFFFD700),
-                                    activeTrackColor = Color(0xFFFFD700),
-                                    inactiveTrackColor = Color.White.copy(alpha = 0.3f)
-                                )
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-
-                        Text(
-                            text = "提示: 最小缓冲确保视频播放前有足够的缓存数据",
+                            text = "提示: 设置单次快进/快退的时长",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.6f)
                         )
@@ -1312,7 +1276,7 @@ fun TvPlayContent(
                                     .tvFocusable()
                                     .onFocusChanged { isSaveFocused = it.isFocused }
                                     .clickable {
-                                        onUpdateBufferSettings(tempBufferMin, tempBufferMax)
+                                        onUpdateSeekDuration(tempSeekDuration)
                                         showSettingsDrawer = false
                                     }
                                     .background(Color(0xFF4CAF50), RoundedCornerShape(8.dp))
