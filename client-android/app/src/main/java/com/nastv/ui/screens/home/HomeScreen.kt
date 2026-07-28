@@ -203,20 +203,22 @@ fun HomeScreen(
                 }
             }
             else -> {
-                VideoGrid(
-                    videos = videos,
-                    onVideoClick = onNavigateToPlay,
-                    onLoadMore = { viewModel.loadMoreVideos() },
-                    isLoadingMore = isLoadingMore,
-                    hasMore = hasMore,
-                    isTv = isTv,
-                    modifier = Modifier.fillMaxSize(),
-                    savedScrollIndex = viewModel.savedScrollIndex,
-                    savedScrollOffset = viewModel.savedScrollOffset,
-                    onScrollStateChanged = { index, offset ->
-                        viewModel.saveScrollState(index, offset)
-                    }
-                )
+                key("${selectedSource?.id}-${selectedParentCategory?.id}-${selectedSubCategory?.id}") {
+                    VideoGrid(
+                        videos = videos,
+                        onVideoClick = onNavigateToPlay,
+                        onLoadMore = { viewModel.loadMoreVideos() },
+                        isLoadingMore = isLoadingMore,
+                        hasMore = hasMore,
+                        isTv = isTv,
+                        modifier = Modifier.fillMaxSize(),
+                        savedScrollIndex = viewModel.savedScrollIndex,
+                        savedScrollOffset = viewModel.savedScrollOffset,
+                        onScrollStateChanged = { index, offset ->
+                            viewModel.saveScrollState(index, offset)
+                        }
+                    )
+                }
             }
         }
     }

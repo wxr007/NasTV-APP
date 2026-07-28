@@ -170,6 +170,13 @@ fun TVHomeScreen(
         }
     }
 
+    // 切换站源或分类时回到顶部
+    LaunchedEffect(selectedSource?.id, selectedParentCategory?.id, selectedSubCategory?.id) {
+        listState.scrollToItem(0)
+        focusTargetIndex = -1
+        lastFocusedRow = -1
+    }
+
     // 从播放页返回后：先滚动到目标行，再触发焦点恢复
     val savedRowIndex = viewModel.savedScrollIndex / columns
     val savedIndex = viewModel.savedScrollIndex
