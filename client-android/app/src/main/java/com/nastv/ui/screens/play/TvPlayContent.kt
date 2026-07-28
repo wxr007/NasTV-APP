@@ -114,6 +114,7 @@ fun TvPlayContent(
     val episodeRangeFocusRequester = remember { FocusRequester() }
     val descFocusRequester = remember { FocusRequester() }
     val settingsFocusRequester = remember { FocusRequester() }
+    val settingsFirstFocusRequester = remember { FocusRequester() }
     LaunchedEffect(isPlayerMaximized) {
         if (isPlayerMaximized) {
             maximizedFocusRequester.requestFocus()
@@ -138,6 +139,7 @@ fun TvPlayContent(
     LaunchedEffect(showSettingsDrawer) {
         if (showSettingsDrawer) {
             settingsDrawerWasOpened = true
+            settingsFirstFocusRequester.requestFocus()
         } else if (settingsDrawerWasOpened) {
             delay(100)
             settingsFocusRequester.requestFocus()
@@ -1061,10 +1063,8 @@ fun TvPlayContent(
 
         // 设置抽屉 - 从右侧滑出
         if (showSettingsDrawer) {
-            val settingsCloseFocusRequester = remember { FocusRequester() }
             val settingsScrollState = rememberScrollState()
             var settingsScrollDelta by remember { mutableStateOf(0) }
-            LaunchedEffect(Unit) { settingsCloseFocusRequester.requestFocus() }
             LaunchedEffect(settingsScrollDelta) {
                 if (settingsScrollDelta != 0) {
                     val target = (settingsScrollState.value + settingsScrollDelta).coerceIn(0, settingsScrollState.maxValue)
@@ -1141,22 +1141,25 @@ fun TvPlayContent(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         var isSeekSliderFocused by remember { mutableStateOf(false) }
-                        val seekSliderFocusRequester = remember { FocusRequester() }
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .focusRequester(seekSliderFocusRequester)
+                                .focusRequester(settingsFirstFocusRequester)
                                 .focusProperties { canFocus = true }
                                 .onFocusChanged { isSeekSliderFocused = it.isFocused }
                                 .onKeyEvent { event ->
                                     if (event.type == KeyEventType.KeyDown) {
                                         when (event.key) {
                                             Key.DirectionLeft -> {
-                                                tempSeekDuration = (tempSeekDuration - 5).coerceAtLeast(5)
+                                                val newVal = (tempSeekDuration - 5).coerceAtLeast(5)
+                                                tempSeekDuration = newVal
+                                                onUpdateSeekDuration(newVal)
                                                 true
                                             }
                                             Key.DirectionRight -> {
-                                                tempSeekDuration = (tempSeekDuration + 5).coerceAtMost(60)
+                                                val newVal = (tempSeekDuration + 5).coerceAtMost(60)
+                                                tempSeekDuration = newVal
+                                                onUpdateSeekDuration(newVal)
                                                 true
                                             }
                                             else -> false
@@ -1177,6 +1180,7 @@ fun TvPlayContent(
                             Slider(
                                 value = tempSeekDuration.toFloat(),
                                 onValueChange = { tempSeekDuration = it.toInt() },
+                                onValueChangeFinished = { onUpdateSeekDuration(tempSeekDuration) },
                                 valueRange = 5f..60f,
                                 steps = 10,
                                 modifier = Modifier.fillMaxWidth(),
@@ -1222,7 +1226,10 @@ fun TvPlayContent(
                                         .weight(1f)
                                         .tvFocusable()
                                         .onFocusChanged { isFocused = it.isFocused }
-                                        .clickable { tempResizeMode = index }
+                                        .clickable {
+                                            tempResizeMode = index
+                                            resizeMode = index
+                                        }
                                         .background(
                                             if (isSelected) Color(0xFF4CAF50).copy(alpha = 0.3f) else Color(0xFF333333),
                                             RoundedCornerShape(8.dp)
@@ -1289,52 +1296,6 @@ fun TvPlayContent(
                                         )
                                     )
                                 }
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(32.dp))
-
-                        // 按钮行
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            // 取消按钮
-                            var isCancelFocused by remember { mutableStateOf(false) }
-                            val cancelBorderColor = if (isCancelFocused) Color(0xFFFFD700) else Color(0xFF666666)
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .tvFocusable()
-                                    .onFocusChanged { isCancelFocused = it.isFocused }
-                                    .clickable { showSettingsDrawer = false }
-                                    .background(Color(0xFF333333), RoundedCornerShape(8.dp))
-                                    .border(2.dp, cancelBorderColor, RoundedCornerShape(8.dp))
-                                    .padding(vertical = 12.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("取消", color = Color.White)
-                            }
-
-                            // 保存按钮
-                            var isSaveFocused by remember { mutableStateOf(false) }
-                            val saveBorderColor = if (isSaveFocused) Color(0xFFFFD700) else Color(0xFF666666)
-                            Box(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .focusRequester(settingsCloseFocusRequester)
-                                    .tvFocusable()
-                                    .onFocusChanged { isSaveFocused = it.isFocused }
-                                    .clickable {
-                                        onUpdateSeekDuration(tempSeekDuration)
-                                        resizeMode = tempResizeMode
-                                        showSettingsDrawer = false
-                                    }
-                                    .background(Color(0xFF4CAF50), RoundedCornerShape(8.dp))
-                                    .border(2.dp, saveBorderColor, RoundedCornerShape(8.dp))
-                                    .padding(vertical = 12.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text("保存", color = Color.White)
                             }
                         }
                     }
