@@ -1,10 +1,14 @@
 package com.nastv.ui.screens.settings
 
+import android.content.Context
+import android.widget.Toast
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import coil.Coil
 import com.nastv.data.local.PreferencesRepository
 import com.nastv.utils.ImageUrlHelper
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -14,7 +18,8 @@ import javax.inject.Inject
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
-    private val preferencesRepository: PreferencesRepository
+    private val preferencesRepository: PreferencesRepository,
+    @ApplicationContext private val context: Context
 ) : ViewModel() {
 
     private val _useImageProxy = MutableStateFlow(true)
@@ -127,6 +132,18 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesRepository.saveBufferMinDuration(minDuration)
             preferencesRepository.saveBufferMaxDuration(maxDuration)
+        }
+    }
+
+    @OptIn(coil.annotation.ExperimentalCoilApi::class)
+    fun clearImageCache() {
+        viewModelScope.launch {
+            try {
+                Coil.imageLoader(context).diskCache?.clear()
+                Toast.makeText(context, "图片缓存已清空", Toast.LENGTH_SHORT).show()
+            } catch (e: Exception) {
+                Toast.makeText(context, "清空缓存失败: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
         }
     }
 

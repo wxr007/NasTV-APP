@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Storage
 import androidx.compose.material3.*
@@ -634,6 +635,71 @@ fun SettingsScreen(
                     Switch(
                         checked = useImageProxy,
                         onCheckedChange = { viewModel.setUseImageProxy(it) }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(if (isTv) 16.dp else 12.dp))
+
+            // 清空图片缓存
+            var isClearCacheFocused by remember { mutableStateOf(false) }
+            var clearCacheYPos by remember { mutableFloatStateOf(0f) }
+            var clearCacheHeight by remember { mutableFloatStateOf(0f) }
+            val clearCacheFocusRequester = remember { FocusRequester() }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = if (isTv) 8.dp else 4.dp)
+                    .then(
+                        if (isTv) Modifier
+                            .focusRequester(clearCacheFocusRequester)
+                            .focusProperties { canFocus = true }
+                            .onFocusChanged { focusState ->
+                                isClearCacheFocused = focusState.isFocused
+                                if (focusState.isFocused) {
+                                    scrollToCenter(clearCacheYPos, clearCacheHeight)
+                                }
+                            }
+                            .onGloballyPositioned {
+                                clearCacheYPos = it.positionInParent().y
+                                clearCacheHeight = it.size.height.toFloat()
+                            }
+                            .background(
+                                if (isClearCacheFocused) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .border(
+                                if (isClearCacheFocused) 3.dp else 0.dp,
+                                if (isClearCacheFocused) Color(0xFFFFD700) else Color.Transparent,
+                                RoundedCornerShape(8.dp)
+                            )
+                            .clickable { viewModel.clearImageCache() }
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                        else Modifier
+                            .clickable { viewModel.clearImageCache() }
+                            .padding(horizontal = 16.dp, vertical = 12.dp)
+                    )
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "清空图片缓存",
+                            style = if (isTv) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodyLarge
+                        )
+                        Text(
+                            text = "清除本地缓存的图片数据",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Icon(
+                        imageVector = Icons.Default.Delete,
+                        contentDescription = "清空缓存",
+                        tint = Color(0xFF888888)
                     )
                 }
             }
