@@ -49,7 +49,9 @@ import androidx.media3.ui.PlayerView
 import com.nastv.MainActivity
 import com.nastv.data.repository.AdBlockDataSourceFactory
 import com.nastv.ui.theme.LocalIsTv
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,6 +96,8 @@ fun PlayScreen(
 
     // Seek indicator
     var seekIndicatorText by remember { mutableStateOf<String?>(null) }
+    var indicatorJob by remember { mutableStateOf<Job?>(null) }
+    val coroutineScope = rememberCoroutineScope()
 
     // Drag seek state
     var isDragSeeking by remember { mutableStateOf(false) }
@@ -167,12 +171,9 @@ fun PlayScreen(
         }
     }
 
-    // Auto-hide seek indicator
-    LaunchedEffect(seekIndicatorText) {
-        if (seekIndicatorText != null) {
-            delay(1000)
-            seekIndicatorText = null
-        }
+    // Auto-hide seek indicator (Job-based, handles same-value resets)
+    LaunchedEffect(Unit) {
+        // Cleanup on dispose
     }
 
     Scaffold(
@@ -614,7 +615,16 @@ fun PlayScreen(
                             },
                             onToggleControls = { controlsVisible = !controlsVisible },
                             onUpdateBufferSettings = { min, max -> viewModel.updateBufferSettings(min, max) },
-                            onSeekIndicator = { text -> seekIndicatorText = text },
+                            onSeekIndicator = { text ->
+                                indicatorJob?.cancel()
+                                seekIndicatorText = text
+                                if (text != null) {
+                                    indicatorJob = coroutineScope.launch {
+                                        delay(1000)
+                                        seekIndicatorText = null
+                                    }
+                                }
+                            },
                             adBlockEnabled = adBlockEnabled,
                             onToggleAdBlock = { viewModel.setAdBlockEnabled(it) },
                             seekDuration = seekDuration,

@@ -104,6 +104,7 @@ fun TvPlayContent(
     var showSettingsDrawer by remember { mutableStateOf(false) }
     var tempBufferMax by remember { mutableStateOf(bufferMaxDuration) }
     var tempBufferMin by remember { mutableStateOf(bufferMinDuration) }
+    var debugRepeatCount by remember { mutableIntStateOf(0) }
 
     val maximizedFocusRequester = remember { FocusRequester() }
     val playerFocusRequester = remember { FocusRequester() }
@@ -202,15 +203,29 @@ fun TvPlayContent(
                             when (event.key) {
                                 Key.Back -> { isPlayerMaximized = false; true }
                                 Key.DirectionLeft -> {
-                                    val newPos = (currentPosition - seekDuration * 1000L).coerceAtLeast(0)
+                                    val repeatCount = event.nativeKeyEvent?.repeatCount ?: 0
+                                    debugRepeatCount = repeatCount
+                                    val seekAmount = when {
+                                        repeatCount > 160  -> minOf(seekDuration * 4L * 1000L, 120_000L)
+                                        repeatCount > 80  -> seekDuration * 2L * 1000L
+                                        else             -> seekDuration * 1000L
+                                    }
+                                    val newPos = (exoPlayer.currentPosition - seekAmount).coerceAtLeast(0)
                                     exoPlayer.seekTo(newPos)
-                                    onSeekIndicator("◀◀ ${seekDuration}s")
+                                    onSeekIndicator("◀◀ ${seekAmount / 1000}s")
                                     true
                                 }
                                 Key.DirectionRight -> {
-                                    val newPos = (currentPosition + seekDuration * 1000L).coerceAtMost(totalDuration)
+                                    val repeatCount = event.nativeKeyEvent?.repeatCount ?: 0
+                                    debugRepeatCount = repeatCount
+                                    val seekAmount = when {
+                                        repeatCount > 160  -> minOf(seekDuration * 4L * 1000L, 120_000L)
+                                        repeatCount > 80  -> seekDuration * 2L * 1000L
+                                        else             -> seekDuration * 1000L
+                                    }
+                                    val newPos = (exoPlayer.currentPosition + seekAmount).coerceAtMost(totalDuration)
                                     exoPlayer.seekTo(newPos)
-                                    onSeekIndicator("${seekDuration}s ▶▶")
+                                    onSeekIndicator("${seekAmount / 1000}s ▶▶")
                                     true
                                 }
                                 Key.DirectionUp, Key.DirectionDown -> true
@@ -221,10 +236,11 @@ fun TvPlayContent(
             ) {
                 playerContent(exoPlayer)
 
-                // 快进/快退指示（图标 + 时间）
+                // 快进/快退指示（图标 + 步长 + 时间）
                 seekIndicatorText?.let { text ->
                     val isForward = text.contains("▶")
                     val isBackward = text.contains("◀")
+                    val seekStep = text.filter { it.isDigit() }.toIntOrNull() ?: 0
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -241,20 +257,42 @@ fun TvPlayContent(
                                 .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
                                 .padding(horizontal = 32.dp, vertical = 20.dp)
                         ) {
-                            if (isForward) {
-                                Icon(
-                                    imageVector = Icons.Filled.FastForward,
-                                    contentDescription = "快进",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(48.dp)
-                                )
-                            } else if (isBackward) {
-                                Icon(
-                                    imageVector = Icons.Filled.FastRewind,
-                                    contentDescription = "快退",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(48.dp)
-                                )
+                            Text(
+                                text = "repeat: $debugRepeatCount",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.4f)
+                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                if (isForward) {
+                                    Icon(
+                                        imageVector = Icons.Filled.FastForward,
+                                        contentDescription = "快进",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(48.dp)
+                                    )
+                                    Text(
+                                        text = if (seekStep > 0) "${seekStep}s" else "",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF4FC3F7)
+                                    )
+                                } else if (isBackward) {
+                                    Text(
+                                        text = if (seekStep > 0) "${seekStep}s" else "",
+                                        style = MaterialTheme.typography.titleLarge,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFFFF8A65)
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Filled.FastRewind,
+                                        contentDescription = "快退",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(48.dp)
+                                    )
+                                }
                             }
                             Text(
                                 text = "${formatTime(currentPosition)} / ${formatTime(totalDuration)}",
@@ -439,10 +477,11 @@ fun TvPlayContent(
                     ) {
                         playerContent(exoPlayer)
 
-                        // 快进/快退指示（图标 + 时间）
+                        // 快进/快退指示（图标 + 步长 + 时间）
                         seekIndicatorText?.let { text ->
                             val isForward = text.contains("▶")
                             val isBackward = text.contains("◀")
+                            val seekStep = text.filter { it.isDigit() }.toIntOrNull() ?: 0
                             Box(
                                 modifier = Modifier.fillMaxSize(),
                                 contentAlignment = Alignment.Center
@@ -454,20 +493,42 @@ fun TvPlayContent(
                                         .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(16.dp))
                                         .padding(horizontal = 32.dp, vertical = 20.dp)
                                 ) {
-                                    if (isForward) {
-                                        Icon(
-                                            imageVector = Icons.Filled.FastForward,
-                                            contentDescription = "快进",
-                                            tint = Color.White,
-                                            modifier = Modifier.size(48.dp)
-                                        )
-                                    } else if (isBackward) {
-                                        Icon(
-                                            imageVector = Icons.Filled.FastRewind,
-                                            contentDescription = "快退",
-                                            tint = Color.White,
-                                            modifier = Modifier.size(48.dp)
-                                        )
+                                    Text(
+                                        text = "repeat: $debugRepeatCount",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color.White.copy(alpha = 0.4f)
+                                    )
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        if (isForward) {
+                                            Icon(
+                                                imageVector = Icons.Filled.FastForward,
+                                                contentDescription = "快进",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(48.dp)
+                                            )
+                                            Text(
+                                                text = if (seekStep > 0) "${seekStep}s" else "",
+                                                style = MaterialTheme.typography.titleLarge,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFF4FC3F7)
+                                            )
+                                        } else if (isBackward) {
+                                            Text(
+                                                text = if (seekStep > 0) "${seekStep}s" else "",
+                                                style = MaterialTheme.typography.titleLarge,
+                                                fontWeight = FontWeight.Bold,
+                                                color = Color(0xFFFF8A65)
+                                            )
+                                            Icon(
+                                                imageVector = Icons.Filled.FastRewind,
+                                                contentDescription = "快退",
+                                                tint = Color.White,
+                                                modifier = Modifier.size(48.dp)
+                                            )
+                                        }
                                     }
                                     Text(
                                         text = "${formatTime(currentPosition)} / ${formatTime(totalDuration)}",
