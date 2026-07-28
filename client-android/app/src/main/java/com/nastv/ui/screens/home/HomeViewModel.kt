@@ -96,6 +96,8 @@ class HomeViewModel @Inject constructor(
         _subCategories.value = emptyList()
         currentPage = 1
         _hasMore.value = true
+        savedScrollIndex = 0
+        savedScrollOffset = 0
     }
 
     fun selectParentCategory(category: Category?) {
@@ -105,12 +107,16 @@ class HomeViewModel @Inject constructor(
         _subCategories.value = category?.children ?: emptyList()
         currentPage = 1
         _hasMore.value = true
+        savedScrollIndex = 0
+        savedScrollOffset = 0
     }
 
     fun selectSubCategory(category: Category?) {
         _selectedSubCategory.value = category
         currentPage = 1
         _hasMore.value = true
+        savedScrollIndex = 0
+        savedScrollOffset = 0
     }
 
     fun loadVideos(sourceId: String, categoryId: String? = null) {
