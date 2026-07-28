@@ -105,6 +105,9 @@ fun TvPlayContent(
     var showSettingsDrawer by remember { mutableStateOf(false) }
     var debugRepeatCount by remember { mutableIntStateOf(0) }
     var tempSeekDuration by remember { mutableIntStateOf(seekDuration) }
+    var playerView by remember { mutableStateOf<PlayerView?>(null) }
+    var resizeMode by remember { mutableIntStateOf(0) }
+    var tempResizeMode by remember { mutableIntStateOf(0) }
 
     val maximizedFocusRequester = remember { FocusRequester() }
     val playerFocusRequester = remember { FocusRequester() }
@@ -172,10 +175,11 @@ fun TvPlayContent(
                             player = exoPlayer
                             useController = false
                             setBackgroundColor(android.graphics.Color.BLACK)
-                        }
+                        }.also { playerView = it }
                     },
                     update = { view ->
                         view.player = exoPlayer
+                        view.setResizeMode(resizeMode)
                     },
                     modifier = Modifier.fillMaxSize()
                 )
@@ -1192,6 +1196,51 @@ fun TvPlayContent(
                         )
                         Spacer(modifier = Modifier.height(24.dp))
 
+                        // 画面缩放模式
+                        Text(
+                            text = "画面缩放",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.White
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        val resizeModes = listOf("原始", "固定宽", "固定高", "填充", "裁剪")
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            resizeModes.forEachIndexed { index, name ->
+                                var isFocused by remember { mutableStateOf(false) }
+                                val isSelected = tempResizeMode == index
+                                val borderColor = when {
+                                    isFocused -> Color(0xFFFFD700)
+                                    isSelected -> Color(0xFF4CAF50)
+                                    else -> Color(0xFF666666)
+                                }
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .tvFocusable()
+                                        .onFocusChanged { isFocused = it.isFocused }
+                                        .clickable { tempResizeMode = index }
+                                        .background(
+                                            if (isSelected) Color(0xFF4CAF50).copy(alpha = 0.3f) else Color(0xFF333333),
+                                            RoundedCornerShape(8.dp)
+                                        )
+                                        .border(2.dp, borderColor, RoundedCornerShape(8.dp))
+                                        .padding(vertical = 8.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = name,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = Color.White
+                                    )
+                                }
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(24.dp))
+
                         // 广告屏蔽开关
                         var isAdBlockFocused by remember { mutableStateOf(false) }
                         val adBlockFocusRequester = remember { FocusRequester() }
@@ -1277,6 +1326,7 @@ fun TvPlayContent(
                                     .onFocusChanged { isSaveFocused = it.isFocused }
                                     .clickable {
                                         onUpdateSeekDuration(tempSeekDuration)
+                                        resizeMode = tempResizeMode
                                         showSettingsDrawer = false
                                     }
                                     .background(Color(0xFF4CAF50), RoundedCornerShape(8.dp))
