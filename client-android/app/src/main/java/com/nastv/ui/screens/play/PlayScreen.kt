@@ -6,9 +6,11 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.waitForUpOrCancellation
+import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -52,6 +54,7 @@ import com.nastv.ui.theme.LocalIsTv
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeoutOrNull
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -113,6 +116,10 @@ fun PlayScreen(
     // Drag seek state
     var isDragSeeking by remember { mutableStateOf(false) }
     var dragWasPlayingBefore by remember { mutableStateOf(false) }
+
+    // Long press speed boost
+    var speedBoost by remember { mutableFloatStateOf(0f) }
+    var speedBeforeBoost by remember { mutableFloatStateOf(1f) }
     var dragStartPosition by remember { mutableLongStateOf(0L) }
     var dragSeekPosition by remember { mutableLongStateOf(0L) }
 
@@ -421,40 +428,83 @@ fun PlayScreen(
                     val gestureModifier = Modifier
                         .onSizeChanged { playerWidth = it.width.toFloat() }
                         .pointerInput(seekDuration) {
-                            detectTapGestures(
-                                onTap = {
-                                    if (!isDragSeeking) controlsVisible = !controlsVisible
-                                },
-                                onDoubleTap = { offset ->
-                                    val fraction = if (playerWidth > 0) offset.x / playerWidth else 0.5f
-                                    when {
-                                        fraction < 0.2f -> {
-                                            val durMs = seekDuration * 1000L
-                                            exoPlayer.seekTo((exoPlayer.currentPosition - durMs).coerceAtLeast(0))
-                                            showSeekIndicator("◀◀ ${seekDuration}s")
-                                        }
-                                        fraction > 0.8f -> {
-                                            val durMs = seekDuration * 1000L
-                                            exoPlayer.seekTo((exoPlayer.currentPosition + durMs).coerceAtMost(exoPlayer.duration))
-                                            showSeekIndicator("${seekDuration}s ▶▶")
-                                        }
-                                        else -> {
-                                            if (exoPlayer.isPlaying) {
-                                                exoPlayer.pause()
-                                                showSeekIndicator("")
-                                            } else {
-                                                exoPlayer.play()
-                                                showSeekIndicator("")
+                            awaitEachGesture {
+                                val down = awaitFirstDown(requireUnconsumed = false)
+                                val width = size.width.toFloat()
+                                val xFraction = down.position.x / width
+                                val longPressMs = viewConfiguration.longPressTimeoutMillis
+
+                                val up = withTimeoutOrNull(longPressMs) {
+                                    waitForUpOrCancellation()
+                                }
+
+                                if (up != null) {
+                                    // 在长按超时前抬起 → 判断单击/双击
+                                    val secondDown = withTimeoutOrNull(viewConfiguration.doubleTapTimeoutMillis) {
+                                        awaitFirstDown(requireUnconsumed = false)
+                                    }
+                                    if (secondDown != null) {
+                                        // 双击
+                                        val xFraction2 = secondDown.position.x / width
+                                        waitForUpOrCancellation()
+                                        val fraction = if (playerWidth > 0) xFraction2 else 0.5f
+                                        when {
+                                            fraction < 0.2f -> {
+                                                val durMs = seekDuration * 1000L
+                                                exoPlayer.seekTo((exoPlayer.currentPosition - durMs).coerceAtLeast(0))
+                                                showSeekIndicator("◀◀ ${seekDuration}s")
+                                            }
+                                            fraction > 0.8f -> {
+                                                val durMs = seekDuration * 1000L
+                                                exoPlayer.seekTo((exoPlayer.currentPosition + durMs).coerceAtMost(exoPlayer.duration))
+                                                showSeekIndicator("${seekDuration}s ▶▶")
+                                            }
+                                            else -> {
+                                                if (exoPlayer.isPlaying) {
+                                                    exoPlayer.pause()
+                                                    showSeekIndicator("")
+                                                } else {
+                                                    exoPlayer.play()
+                                                    showSeekIndicator("")
+                                                }
                                             }
                                         }
+                                    } else {
+                                        // 单击
+                                        if (!isDragSeeking) controlsVisible = !controlsVisible
+                                    }
+                                } else {
+                                    // 长按 → 倍速播放，可上下滑动调节速率
+                                    if (exoPlayer.isPlaying) {
+                                        speedBeforeBoost = exoPlayer.playbackParameters.speed
+                                        var currentSpeed = 2.0f
+                                        exoPlayer.playbackParameters = exoPlayer.playbackParameters.withSpeed(currentSpeed)
+                                        speedBoost = currentSpeed
+                                        val startY = down.position.y
+                                        while (true) {
+                                            val event = awaitPointerEvent()
+                                            val released = event.changes.all { !it.pressed }
+                                            if (released) break
+                                            val y = event.changes.firstOrNull()?.position?.y ?: startY
+                                            val deltaY = (startY - y) / size.height.toFloat()
+                                            val newSpeed = (2.0f + deltaY * 5.0f).coerceIn(1.5f, 4.0f)
+                                            if (kotlin.math.abs(newSpeed - currentSpeed) >= 0.1f) {
+                                                currentSpeed = newSpeed
+                                                exoPlayer.playbackParameters = exoPlayer.playbackParameters.withSpeed(currentSpeed)
+                                                speedBoost = currentSpeed
+                                            }
+                                        }
+                                        exoPlayer.playbackParameters = exoPlayer.playbackParameters.withSpeed(speedBeforeBoost)
+                                        speedBoost = 0f
                                     }
                                 }
-                            )
+                            }
                         }
                         // 水平拖动 seek（手机端）
                         .pointerInput(Unit) {
                             detectHorizontalDragGestures(
                                 onDragStart = {
+                                    if (speedBoost > 0f) return@detectHorizontalDragGestures
                                     dragStartPosition = exoPlayer.currentPosition
                                     dragSeekPosition = dragStartPosition
                                     dragWasPlayingBefore = exoPlayer.isPlaying
@@ -462,6 +512,7 @@ fun PlayScreen(
                                     if (exoPlayer.isPlaying) exoPlayer.pause()
                                 },
                                 onHorizontalDrag = { _, dragAmount ->
+                                    if (speedBoost > 0f) return@detectHorizontalDragGestures
                                     if (playerWidth > 0 && totalDuration > 0) {
                                         // 屏幕宽度映射到总时长，累加到当前拖拽位置
                                         val deltaMs = (dragAmount / playerWidth * totalDuration).toLong()
@@ -471,12 +522,14 @@ fun PlayScreen(
                                     }
                                 },
                                 onDragEnd = {
+                                    if (speedBoost > 0f) return@detectHorizontalDragGestures
                                     isDragSeeking = false
                                     exoPlayer.seekTo(dragSeekPosition)
                                     seekIndicatorText = null
                                     if (dragWasPlayingBefore) exoPlayer.play()
                                 },
                                 onDragCancel = {
+                                    if (speedBoost > 0f) return@detectHorizontalDragGestures
                                     isDragSeeking = false
                                     exoPlayer.seekTo(dragStartPosition)
                                     seekIndicatorText = null
@@ -501,6 +554,24 @@ fun PlayScreen(
                                 modifier = Modifier.fillMaxSize()
                             )
                             Box(modifier = Modifier.fillMaxSize().then(gestureModifier))
+
+                            // 倍速指示器（顶部居中）
+                            if (speedBoost > 0f) {
+                                Box(
+                                    modifier = Modifier
+                                        .align(Alignment.TopCenter)
+                                        .padding(top = 8.dp)
+                                        .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) {
+                                    Text(
+                                        text = "%.1fx".format(speedBoost),
+                                        color = Color.White,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
 
                             if (!seekIndicatorText.isNullOrBlank()) {
                                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -648,6 +719,7 @@ fun PlayScreen(
                             cachedEpisodeIndices = cachedEpisodeIndices,
                             isBuffering = isBuffering,
                             downloadSpeed = downloadSpeed,
+                            speedBoost = speedBoost,
                             sourceName = sourceName,
                             onToggleFavorite = { viewModel.toggleFavorite() },
                             onSelectLine = { viewModel.selectLine(it) },

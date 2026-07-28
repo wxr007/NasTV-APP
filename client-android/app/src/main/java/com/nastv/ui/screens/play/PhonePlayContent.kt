@@ -61,6 +61,7 @@ fun PhonePlayContent(
     cachedEpisodeIndices: Set<Int>,
     isBuffering: Boolean,
     downloadSpeed: Long,
+    speedBoost: Float,
     sourceName: String?,
     onToggleFavorite: () -> Unit,
     onSelectLine: (Int) -> Unit,
@@ -114,6 +115,24 @@ fun PhonePlayContent(
                         modifier = Modifier
                             .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
                             .padding(horizontal = 14.dp, vertical = 6.dp)
+                    )
+                }
+            }
+
+            // 倍速指示器（顶部居中）
+            if (speedBoost > 0f) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 8.dp)
+                        .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
+                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                ) {
+                    Text(
+                        text = "%.1fx".format(speedBoost),
+                        color = Color.White,
+                        fontSize = 14.sp,
+                        fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                     )
                 }
             }
