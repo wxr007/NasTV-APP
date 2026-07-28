@@ -99,6 +99,17 @@ fun PlayScreen(
     var indicatorJob by remember { mutableStateOf<Job?>(null) }
     val coroutineScope = rememberCoroutineScope()
 
+    fun showSeekIndicator(text: String?) {
+        indicatorJob?.cancel()
+        seekIndicatorText = text
+        if (text != null) {
+            indicatorJob = coroutineScope.launch {
+                delay(1000)
+                seekIndicatorText = null
+            }
+        }
+    }
+
     // Drag seek state
     var isDragSeeking by remember { mutableStateOf(false) }
     var dragWasPlayingBefore by remember { mutableStateOf(false) }
@@ -169,11 +180,6 @@ fun PlayScreen(
             delay(3000)
             controlsVisible = false
         }
-    }
-
-    // Auto-hide seek indicator (Job-based, handles same-value resets)
-    LaunchedEffect(Unit) {
-        // Cleanup on dispose
     }
 
     Scaffold(
@@ -425,20 +431,20 @@ fun PlayScreen(
                                         fraction < 0.2f -> {
                                             val durMs = seekDuration * 1000L
                                             exoPlayer.seekTo((exoPlayer.currentPosition - durMs).coerceAtLeast(0))
-                                            seekIndicatorText = "◀◀ ${seekDuration}s"
+                                            showSeekIndicator("◀◀ ${seekDuration}s")
                                         }
                                         fraction > 0.8f -> {
                                             val durMs = seekDuration * 1000L
                                             exoPlayer.seekTo((exoPlayer.currentPosition + durMs).coerceAtMost(exoPlayer.duration))
-                                            seekIndicatorText = "${seekDuration}s ▶▶"
+                                            showSeekIndicator("${seekDuration}s ▶▶")
                                         }
                                         else -> {
                                             if (exoPlayer.isPlaying) {
                                                 exoPlayer.pause()
-                                                seekIndicatorText = ""
+                                                showSeekIndicator("")
                                             } else {
                                                 exoPlayer.play()
-                                                seekIndicatorText = ""
+                                                showSeekIndicator("")
                                             }
                                         }
                                     }
@@ -615,16 +621,7 @@ fun PlayScreen(
                             },
                             onToggleControls = { controlsVisible = !controlsVisible },
                             onUpdateBufferSettings = { min, max -> viewModel.updateBufferSettings(min, max) },
-                            onSeekIndicator = { text ->
-                                indicatorJob?.cancel()
-                                seekIndicatorText = text
-                                if (text != null) {
-                                    indicatorJob = coroutineScope.launch {
-                                        delay(1000)
-                                        seekIndicatorText = null
-                                    }
-                                }
-                            },
+                            onSeekIndicator = { text -> showSeekIndicator(text) },
                             adBlockEnabled = adBlockEnabled,
                             onToggleAdBlock = { viewModel.setAdBlockEnabled(it) },
                             seekDuration = seekDuration,
