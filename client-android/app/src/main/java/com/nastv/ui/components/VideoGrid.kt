@@ -266,9 +266,9 @@ private fun PhoneModeGrid(
         columns = GridCells.Fixed(columns),
         modifier = modifier
             .fillMaxSize()
-            .padding(spacing),
+            .padding(4.dp),
         horizontalArrangement = Arrangement.spacedBy(spacing),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        verticalArrangement = Arrangement.spacedBy(spacing),
         contentPadding = PaddingValues(spacing)
     ) {
         itemsIndexed(videos) { index, video ->

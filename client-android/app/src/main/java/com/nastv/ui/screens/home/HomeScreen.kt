@@ -327,7 +327,10 @@ private fun TvFilterChip(
         FilterChip(
             selected = selected,
             onClick = onClick,
-            label = { Text(label) }
+            label = { Text(label) },
+            // Material3 FilterChip 默认会被 minimumInteractiveComponentSize 撑到 48dp，
+            // 固定为 32dp 以缩小大类型/小类型两行按钮之间的视觉间距
+            modifier = Modifier.requiredHeight(32.dp)
         )
     }
 }
