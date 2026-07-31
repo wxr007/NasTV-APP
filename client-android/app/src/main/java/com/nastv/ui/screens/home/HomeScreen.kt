@@ -29,6 +29,9 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nastv.ui.components.VideoGrid
 import com.nastv.ui.theme.LocalIsTv
+import com.nastv.ui.theme.NasTVAccent
+import com.nastv.ui.theme.NasTVPrimaryGold
+import com.nastv.ui.theme.NasTVTextSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -84,12 +87,12 @@ fun HomeScreen(
                         Text(
                             text = selectedSource?.name ?: "选择源",
                             style = MaterialTheme.typography.titleLarge,
-                            color = if (isTv) Color(0xFFFFD700) else Color.Unspecified
+                            color = if (isTv) NasTVPrimaryGold else Color.Unspecified
                         )
                         Icon(
                             Icons.Default.ArrowDropDown,
                             contentDescription = "Select source",
-                            tint = if (isTv) Color(0xFFFFD700) else Color.Unspecified
+                            tint = if (isTv) NasTVPrimaryGold else Color.Unspecified
                         )
                     }
                 }
@@ -300,7 +303,7 @@ private fun TvFilterChip(
     isTv: Boolean
 ) {
     var isFocused by remember { mutableStateOf(false) }
-    val borderColor = if (isFocused) Color(0xFFFFD700) else if (selected) Color(0xFFFF5722) else Color(0xFF666666)
+    val borderColor = if (isFocused) NasTVPrimaryGold else if (selected) Color.White else Color(0xFF666666)
 
     if (isTv) {
         // TV 模式：使用简单的 Box 作为按钮，避免 FilterChip 的双层边框
@@ -309,7 +312,7 @@ private fun TvFilterChip(
                 .onFocusChanged { isFocused = it.isFocused }
                 .clickable(onClick = onClick)
                 .background(
-                    color = if (selected) Color(0xFFFF5722).copy(alpha = 0.2f) else Color.Transparent,
+                    color = if (selected) NasTVAccent else Color.Transparent,
                     shape = RoundedCornerShape(8.dp)
                 )
                 .border(2.dp, borderColor, RoundedCornerShape(8.dp))
@@ -337,7 +340,7 @@ private fun TvIconButton(
     contentDescription: String
 ) {
     var isFocused by remember { mutableStateOf(false) }
-    val backgroundColor = if (isFocused) Color(0xFFFFD700) else Color.Transparent
+    val backgroundColor = if (isFocused) NasTVPrimaryGold else Color.Transparent
 
     if (isTv) {
         Box(

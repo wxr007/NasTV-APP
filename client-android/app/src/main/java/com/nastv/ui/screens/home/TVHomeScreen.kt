@@ -32,10 +32,17 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nastv.ui.components.TVVideoCard
 import com.nastv.ui.config.GridDefaults
+import com.nastv.ui.theme.NasTVAccent
+import com.nastv.ui.theme.NasTVPrimaryGold
+import com.nastv.ui.theme.NasTVSurface
+import com.nastv.ui.theme.NasTVSurfaceLight
+import com.nastv.ui.theme.NasTVTextSecondary
 import android.widget.Toast
 import android.util.Log
 import kotlinx.coroutines.delay
@@ -233,7 +240,16 @@ fun TVHomeScreen(
         if (sourceDropdownExpanded) {
             AlertDialog(
                 onDismissRequest = { sourceDropdownExpanded = false },
-                title = { Text("选择站源") },
+                containerColor = NasTVSurface,
+                titleContentColor = Color.White,
+                title = {
+                    Text(
+                        "选择站源",
+                        color = Color.White,
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                },
                 text = {
                     LazyVerticalGrid(
                         columns = GridCells.Fixed(4),
@@ -244,9 +260,13 @@ fun TVHomeScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         items(sources) { source ->
+                            val isSelected = source.id == selectedSource?.id
+                            var isFocused by remember { mutableStateOf(false) }
+
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth()
+                                    .onFocusChanged { isFocused = it.isFocused }
                                     .clickable {
                                         if (source.id != selectedSource?.id) {
                                             viewModel.selectSource(source)
@@ -254,13 +274,15 @@ fun TVHomeScreen(
                                         sourceDropdownExpanded = false
                                     }
                                     .background(
-                                        if (source.id == selectedSource?.id) Color(0xFFFFD700).copy(alpha = 0.2f) else Color(0xFF2A2A2A),
+                                        if (isSelected) NasTVAccent
+                                        else NasTVSurfaceLight,
                                         RoundedCornerShape(8.dp)
                                     )
+                                    .border(2.dp, if (isFocused) NasTVPrimaryGold else if (isSelected) Color.White else Color.Transparent, RoundedCornerShape(8.dp))
                                     .padding(vertical = 12.dp, horizontal = 8.dp),
                                 contentAlignment = Alignment.Center
                             ) {
-                                val nameColor = if (source.id == selectedSource?.id) Color(0xFFFFD700) else Color.White
+                                val nameColor = if (isSelected) Color.White else NasTVTextSecondary
                                 Row(
                                     verticalAlignment = Alignment.CenterVertically,
                                     horizontalArrangement = Arrangement.Center
@@ -379,12 +401,12 @@ fun TVHomeScreen(
 @Composable
 private fun TvFilterChip(selected: Boolean, onClick: () -> Unit, label: String, modifier: Modifier = Modifier) {
     var isFocused by remember { mutableStateOf(false) }
-    val borderColor = if (isFocused) Color(0xFFFFD700) else if (selected) Color(0xFFFF5722) else Color(0xFF666666)
+    val borderColor = if (isFocused) NasTVPrimaryGold else if (selected) Color.White else NasTVTextSecondary
     Box(
         modifier = modifier
             .onFocusChanged { isFocused = it.isFocused }
             .clickable(onClick = onClick)
-            .background(color = if (selected) Color(0xFFFF5722).copy(alpha = 0.2f) else Color.Transparent, shape = RoundedCornerShape(8.dp))
+            .background(color = if (selected) NasTVAccent else Color.Transparent, shape = RoundedCornerShape(8.dp))
             .border(2.dp, borderColor, RoundedCornerShape(8.dp))
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) { Text(text = label, color = Color.White) }
@@ -398,22 +420,22 @@ private fun TvSourceButton(sourceName: String, onClick: () -> Unit) {
             .onFocusChanged { isFocused = it.isFocused }
             .clickable(onClick = onClick)
             .background(
-                color = if (isFocused) Color(0xFFFFD700).copy(alpha = 0.2f) else Color.Transparent,
+                color = if (isFocused) NasTVPrimaryGold.copy(alpha = 0.2f) else Color.Transparent,
                 shape = RoundedCornerShape(8.dp)
             )
-            .border(2.dp, if (isFocused) Color(0xFFFFD700) else Color.Transparent, RoundedCornerShape(8.dp))
+            .border(2.dp, if (isFocused) NasTVPrimaryGold else Color.Transparent, RoundedCornerShape(8.dp))
             .padding(horizontal = 16.dp, vertical = 8.dp)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 text = sourceName,
                 style = MaterialTheme.typography.titleLarge,
-                color = Color(0xFFFFD700)
+                color = NasTVPrimaryGold
             )
             Icon(
                 imageVector = Icons.Default.ArrowDropDown,
                 contentDescription = "Select source",
-                tint = Color(0xFFFFD700)
+                tint = NasTVPrimaryGold
             )
         }
     }
@@ -422,7 +444,7 @@ private fun TvSourceButton(sourceName: String, onClick: () -> Unit) {
 @Composable
 private fun TvIconButton(onClick: () -> Unit, icon: androidx.compose.ui.graphics.vector.ImageVector, contentDescription: String) {
     var isFocused by remember { mutableStateOf(false) }
-    val backgroundColor = if (isFocused) Color(0xFFFFD700) else Color.Transparent
+    val backgroundColor = if (isFocused) NasTVPrimaryGold else Color.Transparent
     Box(
         modifier = Modifier
             .onFocusChanged { isFocused = it.isFocused }

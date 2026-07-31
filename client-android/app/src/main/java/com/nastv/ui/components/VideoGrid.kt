@@ -268,7 +268,7 @@ private fun PhoneModeGrid(
             .fillMaxSize()
             .padding(spacing),
         horizontalArrangement = Arrangement.spacedBy(spacing),
-        verticalArrangement = Arrangement.spacedBy(spacing),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
         contentPadding = PaddingValues(spacing)
     ) {
         itemsIndexed(videos) { index, video ->

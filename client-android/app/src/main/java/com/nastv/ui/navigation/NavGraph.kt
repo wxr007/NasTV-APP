@@ -32,6 +32,8 @@ import com.nastv.ui.screens.home.TVHomeScreen
 import com.nastv.ui.screens.login.LoginScreen
 import com.nastv.ui.screens.play.PlayScreen
 import com.nastv.ui.screens.search.SearchScreen
+import com.nastv.ui.screens.search.TvSearchContent
+import com.nastv.ui.screens.search.TvSearchResultScreen
 import com.nastv.ui.screens.server.ServerSelectScreen
 import com.nastv.ui.screens.settings.SettingsScreen
 import com.nastv.ui.theme.LocalIsTv
@@ -220,7 +222,45 @@ fun NavGraph(
             popEnterTransition = { EnterTransition.None },
             popExitTransition = { ExitTransition.None }
         ) {
-            SearchScreen(
+            val isTv = LocalIsTv.current
+            if (isTv) {
+                val tvViewModel: com.nastv.ui.screens.search.TvSearchViewModel = hiltViewModel()
+                TvSearchContent(
+                    viewModel = tvViewModel,
+                    onSearch = { keyword ->
+                        navController.navigate(Screen.TvSearchResult.createRoute(keyword))
+                    },
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            } else {
+                SearchScreen(
+                    onNavigateToPlay = { sourceId, videoId ->
+                        navController.navigate(Screen.Play.createRoute(sourceId, videoId))
+                    },
+                    onNavigateBack = {
+                        navController.popBackStack()
+                    }
+                )
+            }
+        }
+
+        composable(
+            route = Screen.TvSearchResult.route,
+            arguments = listOf(
+                navArgument("keyword") { type = NavType.StringType }
+            ),
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None }
+        ) { backStackEntry ->
+            val keyword = backStackEntry.arguments?.getString("keyword") ?: ""
+            val tvViewModel: com.nastv.ui.screens.search.TvSearchViewModel = hiltViewModel()
+            TvSearchResultScreen(
+                keyword = keyword,
+                viewModel = tvViewModel,
                 onNavigateToPlay = { sourceId, videoId ->
                     navController.navigate(Screen.Play.createRoute(sourceId, videoId))
                 },

@@ -18,4 +18,9 @@ sealed class Screen(val route: String) {
     object History : Screen("history")
     object Settings : Screen("settings")
     object Cache : Screen("cache")
+    object TvSearchResult : Screen("tv_search_result/{keyword}") {
+        fun createRoute(keyword: String): String {
+            return "tv_search_result/$keyword"
+        }
+    }
 }

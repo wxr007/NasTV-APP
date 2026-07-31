@@ -47,6 +47,10 @@ import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.TransferListener
 import androidx.media3.datasource.DataSource
 import androidx.media3.datasource.DataSpec
+import androidx.media3.datasource.cache.CacheDataSource
+import androidx.media3.datasource.cache.LeastRecentlyUsedCacheEvictor
+import androidx.media3.datasource.cache.SimpleCache
+import androidx.media3.database.StandaloneDatabaseProvider
 import androidx.media3.ui.PlayerView
 import com.nastv.MainActivity
 import com.nastv.data.repository.AdBlockDataSourceFactory
@@ -255,6 +259,38 @@ fun PlayScreen(
                         val savedPositionForRestore = remember(bufferMaxDuration) {
                             exoPlayerRef.value?.currentPosition ?: 0L
                         }
+                        // 磁盘缓存，300MB 上限，LRU 策略自动驱逐旧数据
+                        // 安全初始化：上次退出时如果数据库损坏，清理重建
+                        val cacheDir = java.io.File(context.cacheDir, "exoplayer_cache")
+                        val cache: SimpleCache? = remember(cacheDir) {
+                            try {
+                                SimpleCache(
+                                    cacheDir,
+                                    LeastRecentlyUsedCacheEvictor(300 * 1024 * 1024),
+                                    StandaloneDatabaseProvider(context)
+                                )
+                            } catch (e: Exception) {
+                                android.util.Log.e("PlayScreen", "缓存初始化失败，清理后重试", e)
+                                cacheDir.deleteRecursively()
+                                try {
+                                    SimpleCache(
+                                        cacheDir,
+                                        LeastRecentlyUsedCacheEvictor(300 * 1024 * 1024),
+                                        StandaloneDatabaseProvider(context)
+                                    )
+                                } catch (e2: Exception) {
+                                    android.util.Log.e("PlayScreen", "缓存初始化再次失败，禁用磁盘缓存", e2)
+                                    null
+                                }
+                            }
+                        }
+                        // 退出页面时释放缓存，关闭数据库连接，防止下次进入时锁冲突
+                        DisposableEffect(cache) {
+                            onDispose {
+                                cache?.release()
+                            }
+                        }
+
                         val exoPlayer = remember(bufferMaxDuration, adBlockEnabled) {
                             // 每次重建时重新创建 DataSource 工厂，确保广告屏蔽设置生效
                             val httpDataSourceFactory = androidx.media3.datasource.DefaultHttpDataSource.Factory()
@@ -272,8 +308,18 @@ fun PlayScreen(
                                 httpDataSourceFactory
                             }
 
-                            val dataSourceFactory = DefaultDataSource.Factory(context, finalHttpFactory)
-                                .setTransferListener(transferListener)
+                            // 用 CacheDataSource 包装，实现本地磁盘缓存（cache 为 null 时退化为纯网络）
+                            val dataSourceFactory = if (cache != null) {
+                                val cacheDsFactory = CacheDataSource.Factory()
+                                    .setCache(cache)
+                                    .setUpstreamDataSourceFactory(finalHttpFactory)
+                                    .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+                                DefaultDataSource.Factory(context, cacheDsFactory)
+                                    .setTransferListener(transferListener)
+                            } else {
+                                DefaultDataSource.Factory(context, finalHttpFactory)
+                                    .setTransferListener(transferListener)
+                            }
 
                             val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
                             val oldPlayer = exoPlayerRef.value

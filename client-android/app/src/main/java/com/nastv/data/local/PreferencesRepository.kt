@@ -41,6 +41,11 @@ class PreferencesRepository @Inject constructor(
         val ACCOUNTS_KEY = stringPreferencesKey("accounts_json")
         val LAST_SERVER_ID_KEY = stringPreferencesKey("last_server_id")
         val LAST_ACCOUNT_ID_KEY = stringPreferencesKey("last_account_id")
+
+        // 搜索设置
+        val SEARCH_API_PROVIDER_KEY = stringPreferencesKey("search_api_provider")
+        val SEARCH_SELECTED_SOURCE_IDS_KEY = stringPreferencesKey("search_selected_source_ids")
+        val SEARCH_HISTORY_KEY = stringPreferencesKey("search_history")
     }
 
     val serverUrlFlow: Flow<String> = dataStore.data.map { preferences ->
@@ -202,6 +207,59 @@ class PreferencesRepository @Inject constructor(
 
     val lastAccountIdFlow: Flow<String?> = dataStore.data.map { preferences ->
         preferences[LAST_ACCOUNT_ID_KEY]
+    }
+
+    // ==================== 搜索设置 ====================
+
+    val searchApiProviderFlow: Flow<String> = dataStore.data.map { preferences ->
+        preferences[SEARCH_API_PROVIDER_KEY] ?: "iqiyi_360"
+    }
+
+    val searchSelectedSourceIdsFlow: Flow<Set<String>> = dataStore.data.map { preferences ->
+        val json = preferences[SEARCH_SELECTED_SOURCE_IDS_KEY] ?: "[]"
+        try {
+            val list = moshi.adapter<List<String>>(
+                com.squareup.moshi.Types.newParameterizedType(List::class.java, String::class.java)
+            ).fromJson(json)
+            list?.toSet() ?: emptySet()
+        } catch (_: Exception) {
+            emptySet()
+        }
+    }
+
+    val searchHistoryFlow: Flow<List<String>> = dataStore.data.map { preferences ->
+        val json = preferences[SEARCH_HISTORY_KEY] ?: "[]"
+        try {
+            moshi.adapter<List<String>>(
+                com.squareup.moshi.Types.newParameterizedType(List::class.java, String::class.java)
+            ).fromJson(json) ?: emptyList()
+        } catch (_: Exception) {
+            emptyList()
+        }
+    }
+
+    suspend fun saveSearchApiProvider(provider: String) {
+        dataStore.edit { preferences ->
+            preferences[SEARCH_API_PROVIDER_KEY] = provider
+        }
+    }
+
+    suspend fun saveSearchSelectedSourceIds(ids: Set<String>) {
+        val json = moshi.adapter<List<String>>(
+            com.squareup.moshi.Types.newParameterizedType(List::class.java, String::class.java)
+        ).toJson(ids.toList())
+        dataStore.edit { preferences ->
+            preferences[SEARCH_SELECTED_SOURCE_IDS_KEY] = json
+        }
+    }
+
+    suspend fun saveSearchHistory(history: List<String>) {
+        val json = moshi.adapter<List<String>>(
+            com.squareup.moshi.Types.newParameterizedType(List::class.java, String::class.java)
+        ).toJson(history)
+        dataStore.edit { preferences ->
+            preferences[SEARCH_HISTORY_KEY] = json
+        }
     }
 
     suspend fun getAccountsForServer(serverId: String): List<Account> {
