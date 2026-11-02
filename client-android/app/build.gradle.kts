@@ -1,3 +1,6 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
@@ -6,9 +9,32 @@ plugins {
     id("com.google.devtools.ksp")
 }
 
+// 正式签名配置来自 client-android/keystore.properties（不入库）
+// 文件不存在或字段不全时，release 回退到 debug 签名，保证本地/CI 都能出包
+val keystorePropsFile = rootProject.file("keystore.properties")
+val keystoreProps = Properties().apply {
+    if (keystorePropsFile.exists()) {
+        FileInputStream(keystorePropsFile).use { load(it) }
+    }
+}
+val releaseSigningKeys = listOf("storeFile", "storePassword", "keyAlias", "keyPassword")
+val hasReleaseSigning = keystorePropsFile.exists() &&
+    releaseSigningKeys.all { !keystoreProps.getProperty(it).isNullOrBlank() }
+
 android {
     namespace = "com.nastv"
     compileSdk = 34
+
+    signingConfigs {
+        if (hasReleaseSigning) {
+            create("release") {
+                storeFile = rootProject.file(keystoreProps.getProperty("storeFile"))
+                storePassword = keystoreProps.getProperty("storePassword")
+                keyAlias = keystoreProps.getProperty("keyAlias")
+                keyPassword = keystoreProps.getProperty("keyPassword")
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "com.nastv"
@@ -26,7 +52,12 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = true
-            signingConfig = signingConfigs.getByName("debug")
+            // 有正式签名就用正式签名，否则回退 debug
+            signingConfig = if (hasReleaseSigning) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"

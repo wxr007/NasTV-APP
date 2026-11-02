@@ -113,5 +113,33 @@ client-android/
 | push 到 `master` / `main`、PR、手动运行 | 并行编译 release 与 debug，产物上传为 Actions Artifacts |
 | 推送 `v*` 标签 | 额外创建 GitHub Release，附上 release 版全部 APK |
 
-产物按 ABI 分包，命名形如 `app-arm64-v8a-release.apk`、`app-armeabi-v7a-release.apk`、`app-x86_64-release.apk`，在 Actions 运行页面底部的 Artifacts 区域下载。release 使用 debug 签名（见 `app/build.gradle.kts`），安装时可能提示「未知来源」。
+产物按 ABI 分包，命名形如 `app-arm64-v8a-release.apk`、`app-armeabi-v7a-release.apk`、`app-x86_64-release.apk`，在 Actions 运行页面底部的 Artifacts 区域下载。
+
+## 签名
+
+release 构建的签名由 `client-android/keystore.properties` 决定（该文件与 `keystore/` 目录均已加入 `.gitignore`，**不要提交**）：
+
+```properties
+storeFile=keystore/release.jks
+storePassword=******
+keyAlias=nastv
+keyPassword=******
+```
+
+- 文件存在且四个字段齐全 → 使用正式 release 密钥签名
+- 文件缺失 → 自动回退为 debug 签名（本地随手编译也能出包）
+
+CI 端通过 Secrets 注入密钥，需在仓库 Settings → Secrets and variables → Actions 中配置：
+
+| Secret | 说明 |
+|--------|------|
+| `ANDROID_KEYSTORE_BASE64` | `release.jks` 的 base64 内容（`base64 -w0 release.jks`） |
+| `ANDROID_KEYSTORE_PASSWORD` | keystore 密码 |
+| `ANDROID_KEY_ALIAS` | 密钥别名 |
+| `ANDROID_KEY_PASSWORD` | 密钥密码（可留空，默认同 keystore 密码） |
+
+未配置 `ANDROID_KEYSTORE_BASE64` 时 workflow 只打一条 warning 并回退 debug 签名，不会失败。签名密钥一经用于发布就**不可更换**（换了之后老用户无法覆盖升级），请务必备份 `release.jks` 与密码。
+
+CI 每次构建都会在 `Verify APK signature` 步骤打印实际签名证书的 DN 与 SHA-256，可据此核对各次产物是否同一密钥。
+
 

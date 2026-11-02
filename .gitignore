@@ -29,3 +29,9 @@ client-android/app/build/
 client-android/build/
 .trae/
 .workbuddy/
+
+# 签名材料，绝不入库
+keystore.properties
+client-android/keystore/
+*.jks
+*.keystore
