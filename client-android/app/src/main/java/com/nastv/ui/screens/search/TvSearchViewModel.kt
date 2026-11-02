@@ -9,6 +9,7 @@ import com.nastv.data.model.VideoSource
 import com.nastv.data.repository.SourceRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -155,7 +156,7 @@ class TvSearchViewModel @Inject constructor(
 
     // === 热词 ===
     fun loadHotWords() {
-        viewModelScope.launch {
+        viewModelScope.launch(Dispatchers.IO) {
             try {
                 // 腾讯视频热词 API 已下线，统一使用 360kan
                 val url = "https://api.web.360kan.com/v1/rank?cat=1"
@@ -228,7 +229,7 @@ class TvSearchViewModel @Inject constructor(
     // === 联想词（带 300ms 防抖） ===
     private fun loadSuggestions(keyword: String) {
         suggestionJob?.cancel()
-        suggestionJob = viewModelScope.launch {
+        suggestionJob = viewModelScope.launch(Dispatchers.IO) {
             delay(300)
             try {
                 val encoded = URLEncoder.encode(keyword, "UTF-8")

@@ -150,11 +150,13 @@ fun TvSearchContent(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // 搜索框
+            // 搜索框（仅展示，不获取焦点，通过键盘输入）
             OutlinedTextField(
                 value = inputText,
                 onValueChange = { viewModel.setInputText(it) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusProperties { canFocus = false },
                 placeholder = { Text("搜索...", color = Color.White.copy(alpha = 0.5f)) },
                 singleLine = true,
                 colors = OutlinedTextFieldDefaults.colors(
