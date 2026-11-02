@@ -103,3 +103,15 @@ client-android/
 - `armeabi-v7a`
 - `arm64-v8a`
 - `x86_64`
+
+## CI 构建（GitHub Actions）
+
+`.github/workflows/build-apk.yml` 负责在云端编译 APK：
+
+| 触发条件 | 行为 |
+|----------|------|
+| push 到 `master` / `main`、PR、手动运行 | 并行编译 release 与 debug，产物上传为 Actions Artifacts |
+| 推送 `v*` 标签 | 额外创建 GitHub Release，附上 release 版全部 APK |
+
+产物按 ABI 分包，命名形如 `app-arm64-v8a-release.apk`、`app-armeabi-v7a-release.apk`、`app-x86_64-release.apk`，在 Actions 运行页面底部的 Artifacts 区域下载。release 使用 debug 签名（见 `app/build.gradle.kts`），安装时可能提示「未知来源」。
+

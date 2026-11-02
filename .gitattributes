@@ -1,0 +1,10 @@
+* text=auto
+
+# Gradle wrapper 在 Linux runner 上必须是 LF，否则 ./gradlew 报 bad interpreter
+client-android/gradlew text eol=lf
+client-android/gradle/wrapper/gradle-wrapper.jar binary
+
+*.bat text eol=crlf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.sh text eol=lf
