@@ -1022,12 +1022,12 @@ fun TvPlayContent(
                         // 标题
                         Text(
                             text = detail.name,
-                            style = MaterialTheme.typography.titleLarge,
+                            style = MaterialTheme.typography.headlineSmall,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        // 内容
+                        Spacer(modifier = Modifier.height(16.dp))
+                        // 内容（TV 端远距离观看，字号比手机端大一号）
                         Column(
                             modifier = Modifier
                                 .weight(1f)
@@ -1035,10 +1035,13 @@ fun TvPlayContent(
                         ) {
                             Text(
                                 text = detail.content ?: "",
-                                style = MaterialTheme.typography.bodyMedium
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    fontSize = 20.sp,
+                                    lineHeight = 32.sp
+                                )
                             )
                         }
-                        Spacer(modifier = Modifier.height(12.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
                         // 关闭按钮
                         Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterEnd) {
                             TextButton(
@@ -1054,7 +1057,7 @@ fun TvPlayContent(
                                         } else false
                                     }
                             ) {
-                                Text("关闭")
+                                Text("关闭", fontSize = 20.sp)
                             }
                         }
                     }
