@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.nastv.ui.components.TVVideoCard
+import com.nastv.ui.components.TvClock
 import com.nastv.ui.config.GridDefaults
 import com.nastv.ui.theme.NasTVAccent
 import com.nastv.ui.theme.NasTVPrimaryGold
@@ -214,20 +215,28 @@ fun TVHomeScreen(
     }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // 自定义顶栏：与海报墙对齐（水平 padding = spacing）
-        Row(
+        // 自定义顶栏：与海报墙对齐（水平 padding = spacing），正中显示系统时间
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .background(MaterialTheme.colorScheme.surface)
-                .padding(horizontal = spacing, vertical = 12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(horizontal = spacing, vertical = 12.dp)
         ) {
-            TvSourceButton(
-                sourceName = selectedSource?.name ?: "选择源",
-                onClick = { sourceDropdownExpanded = true }
-            )
-            Spacer(modifier = Modifier.weight(1f))
-            Row(horizontalArrangement = Arrangement.spacedBy(0.dp)) {
+            Row(
+                modifier = Modifier.align(Alignment.CenterStart),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                TvSourceButton(
+                    sourceName = selectedSource?.name ?: "选择源",
+                    onClick = { sourceDropdownExpanded = true }
+                )
+            }
+            // 屏幕正中：系统时间（HH:mm，每分钟自动刷新）
+            TvClock(modifier = Modifier.align(Alignment.Center))
+            Row(
+                modifier = Modifier.align(Alignment.CenterEnd),
+                horizontalArrangement = Arrangement.spacedBy(0.dp)
+            ) {
                 TvIconButton(onClick = onNavigateToSearch, icon = Icons.Default.Search, contentDescription = "Search")
                 TvIconButton(onClick = onNavigateToFavorites, icon = Icons.Default.Favorite, contentDescription = "Favorites")
                 TvIconButton(onClick = onNavigateToHistory, icon = Icons.Default.History, contentDescription = "History")
