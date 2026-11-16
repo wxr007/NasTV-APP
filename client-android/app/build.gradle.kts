@@ -21,6 +21,16 @@ val releaseSigningKeys = listOf("storeFile", "storePassword", "keyAlias", "keyPa
 val hasReleaseSigning = keystorePropsFile.exists() &&
     releaseSigningKeys.all { !keystoreProps.getProperty(it).isNullOrBlank() }
 
+// 版本号唯一来源：client-android/version.properties（CI 也从这里读，保证两边一致）
+val versionPropsFile = rootProject.file("version.properties")
+val versionProps = Properties().apply {
+    if (versionPropsFile.exists()) {
+        FileInputStream(versionPropsFile).use { load(it) }
+    }
+}
+val appVersionName = versionProps.getProperty("versionName")?.trim().orEmpty().ifBlank { "1.0" }
+val appVersionCode = versionProps.getProperty("versionCode")?.trim()?.toIntOrNull() ?: 1
+
 android {
     namespace = "com.nastv"
     compileSdk = 34
@@ -40,8 +50,8 @@ android {
         applicationId = "com.nastv"
         minSdk = 28
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = appVersionCode
+        versionName = appVersionName
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -96,6 +106,39 @@ android {
             isUniversalApk = false
         }
     }
+}
+
+// —— 打包产物带版本号 ——
+// AGP 没有公开的 APK 改名 API（VariantOutput 只暴露 versionCode/versionName），
+// 所以用“构建后复制并重命名”的方式：app-arm64-v8a-release.apk
+//   -> NasTV-v1.0-arm64-v8a-release.apk
+// 产物统一放在 build/outputs/apk/dist/<buildType>/ 下，debug/release 互不覆盖
+fun registerVersionedApkTask(buildType: String) =
+    tasks.register<Copy>(
+        "copyVersionedApk" + buildType.replaceFirstChar { it.uppercaseChar() }
+    ) {
+        group = "distribution"
+        description = "把 $buildType 产物复制到 build/outputs/apk/dist/$buildType 并加上版本号 NasTV-v$appVersionName-…"
+        val distDir = layout.buildDirectory.dir("outputs/apk/dist/$buildType")
+        from(layout.buildDirectory.dir("outputs/apk/$buildType")) {
+            include("*.apk")
+        }
+        into(distDir)
+        rename { originalName -> originalName.replaceFirst("app-", "NasTV-v$appVersionName-") }
+        doFirst {
+            // 版本号变更后清掉旧文件，避免同一个目录里堆多个版本
+            distDir.get().asFile.deleteRecursively()
+        }
+    }
+
+val copyVersionedApkDebug = registerVersionedApkTask("debug")
+val copyVersionedApkRelease = registerVersionedApkTask("release")
+val assembleToDist = mapOf(
+    "assembleDebug" to copyVersionedApkDebug,
+    "assembleRelease" to copyVersionedApkRelease
+)
+tasks.matching { assembleToDist.containsKey(it.name) }.configureEach {
+    finalizedBy(assembleToDist.getValue(name))
 }
 
 dependencies {

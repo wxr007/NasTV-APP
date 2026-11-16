@@ -31,6 +31,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 版本号唯一来源：client-android/version.properties（与 Gradle 共用）
+      - name: Read version
+        id: ver
+        run: |
+          PROPS=client-android/version.properties
+          NAME=$(sed -n 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*//p' "$PROPS" | tr -d '\r' | head -1)
+          CODE=$(sed -n 's/^[[:space:]]*versionCode[[:space:]]*=[[:space:]]*//p' "$PROPS" | tr -d '\r' | head -1)
+          echo "name=${NAME:-1.0}" >> "$GITHUB_OUTPUT"
+          echo "code=${CODE:-1}" >> "$GITHUB_OUTPUT"
+          echo "版本号：v${NAME:-1.0} (versionCode=${CODE:-1})"
+
       - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
@@ -86,7 +97,18 @@ jobs:
       - name: Collect APK
         run: |
           mkdir -p dist
-          find client-android/app/build/outputs/apk/${{ matrix.variant }} -name '*.apk' -exec cp {} dist/ \;
+          SRC="client-android/app/build/outputs/apk/dist/${{ matrix.variant }}"
+          if compgen -G "$SRC/*.apk" > /dev/null; then
+            cp "$SRC"/*.apk dist/
+          else
+            # 兜底：Gradle 的改名任务没跑成时，这里按同样规则补上版本号
+            echo "::warning::$SRC 为空，回退到原始产物并手动加版本号"
+            for f in client-android/app/build/outputs/apk/${{ matrix.variant }}/*.apk; do
+              [ -e "$f" ] || continue
+              cp "$f" "dist/$(basename "$f" | sed "s/^app-/NasTV-v${{ steps.ver.outputs.name }}-/")"
+            done
+          fi
+          echo "产物清单："
           ls -lh dist
 
       # 仅作诊断，失败不阻断出包
@@ -113,7 +135,7 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: nastv-apk-${{ matrix.variant }}
+          name: nastv-v${{ steps.ver.outputs.name }}-${{ matrix.variant }}
           path: dist/*.apk
           if-no-files-found: error
           retention-days: 14
@@ -130,10 +152,24 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Read version
+        id: ver
+        run: |
+          PROPS=client-android/version.properties
+          NAME=$(sed -n 's/^[[:space:]]*versionName[[:space:]]*=[[:space:]]*//p' "$PROPS" | tr -d '\r' | head -1)
+          CODE=$(sed -n 's/^[[:space:]]*versionCode[[:space:]]*=[[:space:]]*//p' "$PROPS" | tr -d '\r' | head -1)
+          echo "name=${NAME:-1.0}" >> "$GITHUB_OUTPUT"
+          echo "code=${CODE:-1}" >> "$GITHUB_OUTPUT"
+          if [ "v${NAME:-1.0}" != "${{ github.ref_name }}" ]; then
+            echo "::warning::tag ${{ github.ref_name }} 与 version.properties 的 v${NAME:-1.0} 不一致，请确认是否忘了改版本号"
+          fi
+
       - name: Download APK artifacts
         uses: actions/download-artifact@v4
         with:
-          name: nastv-apk-release
+          name: nastv-v${{ steps.ver.outputs.name }}-release
           path: dist
 
       - name: Publish GitHub Release
@@ -144,6 +180,8 @@ jobs:
           ls -lh dist
           gh release view "$TAG" -R "$GITHUB_REPOSITORY" > /dev/null 2>&1 \
             || gh release create "$TAG" -R "$GITHUB_REPOSITORY" \
-                 --title "NasTV $TAG" \
-                 --notes "Android APK，按 ABI 分包：arm64-v8a（主流手机）/ armeabi-v7a（旧设备）/ x86_64（模拟器）。所有版本由同一密钥签名，可直接覆盖升级。"
+                 --title "NasTV v${{ steps.ver.outputs.name }}" \
+                 --notes "版本：v${{ steps.ver.outputs.name }}（versionCode ${{ steps.ver.outputs.code }}）
+
+          Android APK，按 ABI 分包：arm64-v8a（主流手机）/ armeabi-v7a（旧设备）/ x86_64（模拟器）。所有版本由同一密钥签名，可直接覆盖升级。"
           gh release upload "$TAG" dist/*.apk -R "$GITHUB_REPOSITORY" --clobber
