@@ -113,20 +113,22 @@ client-android/
 | push 到 `master` / `main`、PR、手动运行 | 并行编译 release 与 debug，产物上传为 Actions Artifacts |
 | 推送 `v*` 标签 | 额外创建 GitHub Release，附上 release 版全部 APK |
 
-产物按 ABI 分包，文件名统一带上版本号，形如 `NasTV-v1.0-arm64-v8a-release.apk`、`NasTV-v1.0-armeabi-v7a-release.apk`、`NasTV-v1.0-x86_64-release.apk`，在 Actions 运行页面底部的 Actions Artifacts（`nastv-v1.0-release` / `nastv-v1.0-debug`）里下载。推送 `v*` 标签时，Release 标题与附件同样带版本号；若标签与 `version.properties` 不一致会打 warning 提醒。
+产物按 ABI 分包，文件名统一带上版本号，形如 `NasTV-v1.1-arm64-v8a-release.apk`、`NasTV-v1.1-armeabi-v7a-release.apk`、`NasTV-v1.1-x86_64-release.apk`，在 Actions 运行页面底部的 Actions Artifacts（`nastv-v1.1-release` / `nastv-v1.1-debug`）里下载。推送 `v*` 标签时，Release 标题与附件同样带版本号；若标签与 `version.properties` 不一致会打 warning 提醒。
 
 ## 版本号
 
 版本号只有一个来源：`client-android/version.properties`，Gradle 编译和 CI 都从这里读取。
 
 ```properties
-versionName=1.0
-versionCode=1
+versionName=1.1
+versionCode=2
 ```
 
-- `versionName`：对外显示的版本号，同时拼进 APK 文件名（`NasTV-v1.0-arm64-v8a-release.apk`）
-- `versionCode`：Android 判定升级用的整数，**只增不减**，每次发版必须 +1，否则设备无法覆盖安装
-- 发版流程：改这两个值 → 推送 `master`（自动出包）→ 打 `v1.0` 这样的标签即可发布 Release
+- `versionName`：对外显示的版本号，同时拼进 APK 文件名（`NasTV-v1.1-arm64-v8a-release.apk`）
+- `versionCode`：Android 判定升级用的整数，**只增不减**，每次改动应用代码必须 +1，否则设备无法覆盖安装
+- 发版流程：改这两个值 → 推送 `master`（自动出包）→ 打 `v1.1` 这样的标签即可发布 Release
+
+推送时 `version-check` 任务会对比推送前后的 `version.properties`：改了应用代码（`.kt` / `.kts` / 资源等）但 `versionCode` 没变大，会在 Actions 里打一条 warning，并在运行摘要里列出「推送前 → 现在」的版本对照。它只是提醒，**不会阻断出包**；纯文档、纯 workflow、纯脚本改动会被跳过。
 
 本地构建后，带版本号的产物会额外复制到 `client-android/app/build/outputs/apk/dist/<buildType>/` 下（`app-*.apk` 原文件保留，`adb install` 脚本照旧可用）。
 

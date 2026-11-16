@@ -15,6 +15,81 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  # 轻量检查：改了应用代码但没升版本号时给出 warning（不阻断出包）
+  version-check:
+    if: github.event_name == 'push'
+    name: version-check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check version bump
+        env:
+          BEFORE: ${{ github.event.before }}
+          FILE: client-android/version.properties
+        run: |
+          if [ -z "$BEFORE" ] || [ -z "$(echo "$BEFORE" | tr -d '0')" ]; then
+            echo "首次推送该分支，跳过版本号检查" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if ! git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            echo "::warning::找不到推送前的提交 $BEFORE（可能 force push 或历史被裁剪），跳过版本号检查"
+            exit 0
+          fi
+
+          # 纯文档/工作流/脚本改动不要求升版本号
+          APP_CHANGES=$(git diff --name-only "$BEFORE" HEAD \
+            | grep -v -E '^(docs/|\.github/|.*\.(md|bat|sh|txt|properties)$|\.gitignore$|\.gitattributes$)' \
+            | head -20 || true)
+          if [ -z "$APP_CHANGES" ]; then
+            echo "本次推送未改动应用代码，跳过版本号检查" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "本次改动的应用文件："
+          echo "$APP_CHANGES"
+
+          read_field() { git show "$1:$FILE" 2>/dev/null | sed -n "s/^[[:space:]]*$2[[:space:]]*=[[:space:]]*//p" | tr -d '\r' | head -1; }
+          PREV_CODE=$(read_field "$BEFORE" versionCode)
+          PREV_NAME=$(read_field "$BEFORE" versionName)
+          CUR_CODE=$(read_field "HEAD" versionCode)
+          CUR_NAME=$(read_field "HEAD" versionName)
+
+          if [ -z "$PREV_CODE" ]; then
+            echo "推送前没有版本文件，视为首次引入，跳过检查" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ -z "$CUR_CODE" ]; then
+            echo "::error::$FILE 缺少 versionCode"
+            exit 1
+          fi
+
+          if [ "$CUR_CODE" -le "$PREV_CODE" ]; then
+            echo "::warning::版本号未升级：versionCode $PREV_CODE -> $CUR_CODE，versionName $PREV_NAME -> $CUR_NAME。改动应用代码后请同步 +1（见 client-android/version.properties）"
+            {
+              echo "### 版本号未升级"
+              echo ""
+              echo "| | 推送前 | 现在 |"
+              echo "|---|---|---|"
+              echo "| versionCode | $PREV_CODE | $CUR_CODE |"
+              echo "| versionName | $PREV_NAME | $CUR_NAME |"
+              echo ""
+              echo "改动应用代码后请修改 \`client-android/version.properties\`（versionCode 必须 +1，否则设备无法覆盖安装）。"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "版本号已升级：versionCode $PREV_CODE -> $CUR_CODE，versionName $PREV_NAME -> $CUR_NAME"
+            {
+              echo "### 版本号已升级：v$CUR_NAME（versionCode $CUR_CODE）"
+              echo ""
+              echo "| | 推送前 | 现在 |"
+              echo "|---|---|---|"
+              echo "| versionCode | $PREV_CODE | $CUR_CODE |"
+              echo "| versionName | $PREV_NAME | $CUR_NAME |"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
   build:
     name: build-${{ matrix.variant }}
     runs-on: ubuntu-latest
