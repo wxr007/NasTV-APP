@@ -689,35 +689,8 @@ fun TvPlayContent(
 
                         Spacer(modifier = Modifier.weight(1f))
 
-                        // 收藏 + 简介 按钮
+                        // 简介 + 收藏 按钮
                         Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                            var isFavoriteFocused by remember { mutableStateOf(false) }
-                            val favBorderColor = if (isFavoriteFocused) Color(0xFFFFD700) else Color(0xFF666666)
-                            Box(
-                                modifier = Modifier
-                                    .tvFocusable()
-                                    .onFocusChanged { isFavoriteFocused = it.isFocused }
-                                    .clickable { onToggleFavorite() }
-                                    .background(Color(0xFF2A2A2A), RoundedCornerShape(8.dp))
-                                    .border(2.dp, favBorderColor, RoundedCornerShape(8.dp))
-                                    .padding(8.dp)
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                                        contentDescription = "收藏",
-                                        tint = if (isFavorite) Color(0xFFFF4081) else Color.White,
-                                        modifier = Modifier.size(28.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = if (isFavorite) "已收藏" else "收藏",
-                                        style = MaterialTheme.typography.bodyLarge,
-                                        color = if (isFavorite) Color(0xFFFF4081) else Color.White
-                                    )
-                                }
-                            }
-
                             // 简介按钮（与收藏按钮等大）
                             if (detail.content != null) {
                                 var isDescFocused by remember { mutableStateOf(false) }
@@ -742,6 +715,34 @@ fun TvPlayContent(
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(text = "简介", style = MaterialTheme.typography.bodyLarge, color = Color.White)
                                     }
+                                }
+                            }
+
+                            // 收藏按钮
+                            var isFavoriteFocused by remember { mutableStateOf(false) }
+                            val favBorderColor = if (isFavoriteFocused) Color(0xFFFFD700) else Color(0xFF666666)
+                            Box(
+                                modifier = Modifier
+                                    .tvFocusable()
+                                    .onFocusChanged { isFavoriteFocused = it.isFocused }
+                                    .clickable { onToggleFavorite() }
+                                    .background(Color(0xFF2A2A2A), RoundedCornerShape(8.dp))
+                                    .border(2.dp, favBorderColor, RoundedCornerShape(8.dp))
+                                    .padding(8.dp)
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                                        contentDescription = "收藏",
+                                        tint = if (isFavorite) Color(0xFFFF4081) else Color.White,
+                                        modifier = Modifier.size(28.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = if (isFavorite) "已收藏" else "收藏",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = if (isFavorite) Color(0xFFFF4081) else Color.White
+                                    )
                                 }
                             }
 
