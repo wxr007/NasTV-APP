@@ -32,6 +32,7 @@ jobs:
           FILE: client-android/version.properties
         run: |
           if [ -z "$BEFORE" ] || [ -z "$(echo "$BEFORE" | tr -d '0')" ]; then
+            echo "首次推送该分支，跳过版本号检查"
             echo "首次推送该分支，跳过版本号检查" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
@@ -40,11 +41,12 @@ jobs:
             exit 0
           fi
 
-          # 纯文档/工作流/脚本改动不要求升版本号
+          # 纯文档/工作流/脚本/版本文件改动不要求升版本号
           APP_CHANGES=$(git diff --name-only "$BEFORE" HEAD \
             | grep -v -E '^(docs/|\.github/|.*\.(md|bat|sh|txt|properties)$|\.gitignore$|\.gitattributes$)' \
             | head -20 || true)
           if [ -z "$APP_CHANGES" ]; then
+            echo "本次推送未改动应用代码，跳过版本号检查"
             echo "本次推送未改动应用代码，跳过版本号检查" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
@@ -58,6 +60,7 @@ jobs:
           CUR_NAME=$(read_field "HEAD" versionName)
 
           if [ -z "$PREV_CODE" ]; then
+            echo "推送前没有版本文件，视为首次引入，跳过检查"
             echo "推送前没有版本文件，视为首次引入，跳过检查" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
