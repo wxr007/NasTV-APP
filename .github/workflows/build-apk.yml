@@ -237,6 +237,10 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          # 生成更新说明需要完整提交历史与标签
+          fetch-depth: 0
+          fetch-tags: true
 
       - name: Read version
         id: ver
@@ -258,19 +262,76 @@ jobs:
           name: nastv-v${{ steps.ver.outputs.name }}-release
           path: dist
 
+      # 从上一个标签到当前提交的 git log 自动生成更新说明
+      - name: Generate release notes
+        run: |
+          PREV=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || true)
+          if [ -n "$PREV" ]; then
+            RANGE="$PREV..HEAD"
+            SCOPE="自 \`$PREV\` 以来的变更"
+          else
+            RANGE="-n 30 HEAD"
+            SCOPE="首次发布"
+          fi
+
+          COMMITS=$(git log --no-merges --pretty=format:'%s' $RANGE || true)
+          feat=""; fix=""; other=""
+          while IFS= read -r line; do
+            [ -z "$line" ] && continue
+            clean=$(printf '%s' "$line" | sed -E 's/^(feat|feature|fix|bugfix|ci|docs|refactor|perf|test|chore|style)(\([^)]*\))?!?:[[:space:]]*//')
+            case "$line" in
+              feat*|feature*) feat="${feat}- ${clean}"$'\n' ;;
+              fix*|bugfix*)   fix="${fix}- ${clean}"$'\n' ;;
+              *)              other="${other}- ${clean}"$'\n' ;;
+            esac
+          done <<< "$COMMITS"
+
+          {
+            echo "## NasTV v${{ steps.ver.outputs.name }}（versionCode ${{ steps.ver.outputs.code }}）"
+            echo
+            echo "$SCOPE"
+            echo
+            if [ -n "$feat" ]; then echo "### 新功能"; echo; printf '%s' "$feat"; echo; fi
+            if [ -n "$fix" ]; then echo "### 修复"; echo; printf '%s' "$fix"; echo; fi
+            if [ -n "$other" ]; then echo "### 其他"; echo; printf '%s' "$other"; echo; fi
+            echo "### 安装包"
+            echo
+            echo "| 文件 | 适用设备 |"
+            echo "| --- | --- |"
+            for f in dist/*.apk; do
+              [ -e "$f" ] || continue
+              base=$(basename "$f")
+              case "$base" in
+                *arm64-v8a*)   dev="主流手机 / 电视盒子（64 位）" ;;
+                *armeabi-v7a*) dev="较老设备（32 位）" ;;
+                *x86_64*)      dev="模拟器" ;;
+                *)             dev="-" ;;
+              esac
+              echo "| \`$base\` | $dev |"
+            done
+            echo
+            echo "所有版本由同一密钥签名，可直接覆盖升级。"
+          } > RELEASE_NOTES.md
+
+          echo "----- RELEASE_NOTES.md -----"
+          cat RELEASE_NOTES.md
+
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           TAG: ${{ steps.ver.outputs.tag }}
+          TITLE: NasTV v${{ steps.ver.outputs.name }}
         run: |
           ls -lh dist
-          # 标签不存在时由 gh 在本次构建的提交上创建，避免手动打 tag
-          gh release view "$TAG" -R "$GITHUB_REPOSITORY" > /dev/null 2>&1 \
-            || gh release create "$TAG" -R "$GITHUB_REPOSITORY" \
-                 --target "$GITHUB_SHA" \
-                 --title "NasTV v${{ steps.ver.outputs.name }}" \
-                 --notes "版本：v${{ steps.ver.outputs.name }}（versionCode ${{ steps.ver.outputs.code }}）
-
-          Android APK，按 ABI 分包：arm64-v8a（主流手机）/ armeabi-v7a（旧设备）/ x86_64（模拟器）。所有版本由同一密钥签名，可直接覆盖升级。"
+          if gh release view "$TAG" -R "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "Release $TAG 已存在，更新标题与说明"
+            gh release edit "$TAG" -R "$GITHUB_REPOSITORY" --title "$TITLE" --notes-file RELEASE_NOTES.md
+          else
+            # 标签不存在时由 gh 在本次构建的提交上创建，避免手动打 tag
+            gh release create "$TAG" -R "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "$TITLE" \
+              --notes-file RELEASE_NOTES.md
+          fi
           gh release upload "$TAG" dist/*.apk -R "$GITHUB_REPOSITORY" --clobber
           echo "已发布：https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG"
