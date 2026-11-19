@@ -3,14 +3,15 @@ chcp 65001 >nul
 setlocal
 cd /d "%~dp0"
 
-REM 读取 client-androidersion.properties 的 versionName，打 v* 标签并推送
-REM 推送标签会触发 Actions：构建 APK 并自动创建 GitHub Release
+REM Read versionName from client-android/version.properties,
+REM then create tag v<versionName> and push it.
+REM Pushing the tag triggers GitHub Actions to build APKs and publish a Release.
 
 set "TAG="
-for /f "tokens=2 delims==" %%a in ('findstr /b "versionName=" client-androidersion.properties') do set "TAG=v%%a"
+for /f "tokens=2 delims==" %%a in ('findstr /b "versionName=" client-android\version.properties') do set "TAG=v%%a"
 if not defined TAG goto :err_version
 
-echo 目标版本: %TAG%
+echo [INFO] target version: %TAG%
 
 git diff-index --quiet HEAD --
 if errorlevel 1 goto :err_dirty
@@ -28,32 +29,32 @@ git push origin "%TAG%"
 if errorlevel 1 goto :err_push
 
 echo.
-echo 已推送标签 %TAG%，Actions 会自动构建并创建 Release：
-echo   https://github.com/wxr007/NasTV-APP/releases/tag/%TAG%
-echo   https://github.com/wxr007/NasTV-APP/actions
+echo [OK] tag %TAG% pushed. Actions will build and publish the release:
+echo      https://github.com/wxr007/NasTV-APP/actions
+echo      https://github.com/wxr007/NasTV-APP/releases/tag/%TAG%
 exit /b 0
 
 :err_version
-echo [错误] 未从 client-androidersion.properties 读到 versionName
+echo [ERROR] versionName not found in client-android/version.properties
 exit /b 1
 
 :err_dirty
-echo [错误] 工作区有未提交的改动，请先 commit：
+echo [ERROR] working tree has uncommitted changes, commit first:
 git status --short
 exit /b 1
 
 :err_local_tag
-echo [错误] 本地已存在标签 %TAG%，如需重发请先删除该标签
+echo [ERROR] local tag %TAG% already exists
 exit /b 1
 
 :err_remote_tag
-echo [错误] 远程已存在标签 %TAG%，请先提升 versionName 再发布
+echo [ERROR] remote tag %TAG% already exists, bump versionName first
 exit /b 1
 
 :err_tag
-echo [错误] 创建标签失败
+echo [ERROR] failed to create tag
 exit /b 1
 
 :err_push
-echo [错误] 推送标签失败
+echo [ERROR] failed to push tag
 exit /b 1
