@@ -6,6 +6,11 @@ on:
     tags: ['v*']
   pull_request:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: '构建完成后发布到 Releases（使用 version.properties 的版本号）'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -223,7 +228,8 @@ jobs:
         run: rm -f client-android/keystore.properties client-android/keystore/release.jks
 
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    # 打 v* 标签，或手动触发时勾选 publish，都会自动发版
+    if: startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && inputs.publish)
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -240,9 +246,11 @@ jobs:
           CODE=$(sed -n 's/^[[:space:]]*versionCode[[:space:]]*=[[:space:]]*//p' "$PROPS" | tr -d '\r' | head -1)
           echo "name=${NAME:-1.0}" >> "$GITHUB_OUTPUT"
           echo "code=${CODE:-1}" >> "$GITHUB_OUTPUT"
-          if [ "v${NAME:-1.0}" != "${{ github.ref_name }}" ]; then
+          echo "tag=v${NAME:-1.0}" >> "$GITHUB_OUTPUT"
+          if [ "${{ github.event_name }}" = "push" ] && [ "v${NAME:-1.0}" != "${{ github.ref_name }}" ]; then
             echo "::warning::tag ${{ github.ref_name }} 与 version.properties 的 v${NAME:-1.0} 不一致，请确认是否忘了改版本号"
           fi
+          echo "将发布 Release：v${NAME:-1.0}（versionCode ${CODE:-1}）"
 
       - name: Download APK artifacts
         uses: actions/download-artifact@v4
@@ -253,13 +261,16 @@ jobs:
       - name: Publish GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ steps.ver.outputs.tag }}
         run: |
           ls -lh dist
+          # 标签不存在时由 gh 在本次构建的提交上创建，避免手动打 tag
           gh release view "$TAG" -R "$GITHUB_REPOSITORY" > /dev/null 2>&1 \
             || gh release create "$TAG" -R "$GITHUB_REPOSITORY" \
+                 --target "$GITHUB_SHA" \
                  --title "NasTV v${{ steps.ver.outputs.name }}" \
                  --notes "版本：v${{ steps.ver.outputs.name }}（versionCode ${{ steps.ver.outputs.code }}）
 
           Android APK，按 ABI 分包：arm64-v8a（主流手机）/ armeabi-v7a（旧设备）/ x86_64（模拟器）。所有版本由同一密钥签名，可直接覆盖升级。"
           gh release upload "$TAG" dist/*.apk -R "$GITHUB_REPOSITORY" --clobber
+          echo "已发布：https://github.com/$GITHUB_REPOSITORY/releases/tag/$TAG"

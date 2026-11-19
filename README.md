@@ -112,6 +112,23 @@ client-android/
 |----------|------|
 | push 到 `master` / `main`、PR、手动运行 | 并行编译 release 与 debug，产物上传为 Actions Artifacts |
 | 推送 `v*` 标签 | 额外创建 GitHub Release，附上 release 版全部 APK |
+| 手动运行并勾选 `publish` | 同上，标签由 CI 自动在当次提交上创建，无需手动打 tag |
+
+### 发布 Release
+
+两种方式，都不需要手动上传 APK：
+
+1. **一键发版（推荐）**：双击根目录 `release.bat`。它读取 `version.properties` 的 `versionName`，检查工作区干净、标签未重复，然后打 `v<版本号>` 标签并推送，Actions 自动构建并创建 Release。
+2. **在网页上手动触发**：Actions → Build APK → Run workflow → 勾选 `publish` → Run。CI 会用 `version.properties` 的版本号创建 `v<版本号>` 标签和 Release。
+
+等价的手动命令：
+
+```bash
+git tag -a v1.2 -m "NasTV v1.2"
+git push origin v1.2
+```
+
+Release 里的 APK 会按 ABI 分包，同名文件重复发布会用 `--clobber` 覆盖，因此可以安全地重跑。
 
 产物按 ABI 分包，文件名统一带上版本号，形如 `NasTV-v1.1-arm64-v8a-release.apk`、`NasTV-v1.1-armeabi-v7a-release.apk`、`NasTV-v1.1-x86_64-release.apk`，在 Actions 运行页面底部的 Actions Artifacts（`nastv-v1.1-release` / `nastv-v1.1-debug`）里下载。推送 `v*` 标签时，Release 标题与附件同样带版本号；若标签与 `version.properties` 不一致会打 warning 提醒。
 
