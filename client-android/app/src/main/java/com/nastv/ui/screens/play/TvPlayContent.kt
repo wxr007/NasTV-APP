@@ -53,6 +53,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.ui.PlayerView
 import com.nastv.data.model.VideoDetail
+import com.nastv.utils.formatDescription
 
 /**
  * TV 端播放页布局（横屏，遥控器/键盘导航）
@@ -684,7 +685,7 @@ fun TvPlayContent(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         detail.content?.let {
-                            Text(text = it, style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.6f), maxLines = 4, overflow = TextOverflow.Ellipsis)
+                            Text(text = formatDescription(it), style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.6f), maxLines = 4, overflow = TextOverflow.Ellipsis)
                         }
 
                         Spacer(modifier = Modifier.weight(1f))
@@ -1034,7 +1035,7 @@ fun TvPlayContent(
                                 .verticalScroll(descScrollState)
                         ) {
                             Text(
-                                text = detail.content ?: "",
+                                text = formatDescription(detail.content),
                                 style = MaterialTheme.typography.bodyLarge.copy(
                                     fontSize = 20.sp,
                                     lineHeight = 32.sp
