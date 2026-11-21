@@ -1,63 +1,84 @@
 package com.nastv.ui.screens.search
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.gestures.animateScrollBy
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.runtime.snapshotFlow
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.activity.compose.BackHandler
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.nastv.ui.components.TVVideoCard
 import com.nastv.ui.components.VideoCard
-import com.nastv.ui.config.GridDefaults
-import com.nastv.ui.theme.LocalIsTv
-import android.util.Log
-import kotlinx.coroutines.delay
-import kotlin.math.abs
+import com.nastv.ui.theme.NasTVTextSecondary
 
+/**
+ * 手机端搜索页：按站源并发直连搜索，结果按站源顺序汇总展示。
+ */
 @Composable
 fun SearchScreen(
     onNavigateToPlay: (String, String) -> Unit,
     onNavigateBack: () -> Unit,
     viewModel: SearchViewModel = hiltViewModel()
 ) {
-    val isTv = LocalIsTv.current
     var query by remember { mutableStateOf("") }
     val searchResults by viewModel.searchResults.collectAsState()
     val sourceNameMap by viewModel.sourceNameMap.collectAsState()
-
-    // TV端遥控器退出键返回
-    BackHandler { onNavigateBack() }
     val suggestions by viewModel.suggestions.collectAsState()
     val isLoading by viewModel.isLoading.collectAsState()
     val errorMessage by viewModel.errorMessage.collectAsState()
+    val searchedKeyword by viewModel.searchedKeyword.collectAsState()
+
+    BackHandler { onNavigateBack() }
+
+    val submit: (String) -> Unit = { keyword ->
+        query = keyword
+        viewModel.search(keyword)
+    }
 
     Column(modifier = Modifier.fillMaxSize()) {
-        // Search bar
+        // 搜索栏
         Row(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (!isTv) {
-                IconButton(onClick = onNavigateBack) {
-                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                }
+            IconButton(onClick = onNavigateBack) {
+                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "返回")
             }
             OutlinedTextField(
                 value = query,
@@ -68,6 +89,8 @@ fun SearchScreen(
                 modifier = Modifier.weight(1f),
                 placeholder = { Text("搜索视频...") },
                 singleLine = true,
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                keyboardActions = KeyboardActions(onSearch = { submit(query) }),
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = Color(0xFFFFD700),
                     unfocusedBorderColor = Color(0xFFFFD700),
@@ -75,7 +98,7 @@ fun SearchScreen(
                 ),
                 trailingIcon = {
                     if (query.isNotBlank()) {
-                        IconButton(onClick = { viewModel.search(query) }) {
+                        IconButton(onClick = { submit(query) }) {
                             Icon(
                                 Icons.Default.Search,
                                 contentDescription = "搜索",
@@ -87,19 +110,22 @@ fun SearchScreen(
             )
         }
 
-        // Suggestions dropdown
+        // 并发搜索中：顶部细进度条，已返回的结果可以边看边刷新
+        if (isLoading) {
+            LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        }
+
+        // 联想词
         if (suggestions.isNotEmpty() && query.isNotBlank()) {
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .heightIn(max = 260.dp)
                     .padding(horizontal = 16.dp)
             ) {
                 items(items = suggestions) { suggestion ->
                     TextButton(
-                        onClick = {
-                            query = suggestion
-                            viewModel.search(suggestion)
-                        },
+                        onClick = { submit(suggestion) },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(suggestion, modifier = Modifier.weight(1f))
@@ -108,144 +134,84 @@ fun SearchScreen(
             }
         }
 
-        // Search results
         when {
+            // 有结果就先展示（并发过程中会逐步追加）
+            searchResults.isNotEmpty() -> {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(3),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
+                    contentPadding = PaddingValues(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    items(items = searchResults) { video ->
+                        VideoCard(
+                            video = video,
+                            onClick = { onNavigateToPlay(video.sourceId, video.id) },
+                            sourceName = sourceNameMap[video.sourceId]
+                        )
+                    }
+                }
+            }
+
             isLoading -> {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f),
                     contentAlignment = Alignment.Center
                 ) {
                     CircularProgressIndicator()
                 }
             }
+
             errorMessage != null -> {
                 Box(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(24.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = errorMessage ?: "",
-                        color = MaterialTheme.colorScheme.error
+                        color = MaterialTheme.colorScheme.error,
+                        textAlign = TextAlign.Center
                     )
                 }
             }
-            searchResults.isNotEmpty() -> {
-                if (isTv) {
-                    // TV 模式：使用 LazyColumn + Row 手动网格（解决焦点导航问题）
-                    val columns = GridDefaults.TV_COLUMNS
-                    val spacing = GridDefaults.TV_SPACING
-                    val rows = searchResults.chunked(columns)
-                    val listState = rememberLazyListState()
 
-                    // 焦点恢复目标索引（-1 表示不需要恢复）
-                    var focusTargetIndex by remember { mutableStateOf(-1) }
-                    var isRestoringScroll by remember { mutableStateOf(false) }
-                    var lastFocusedRow by remember { mutableIntStateOf(-1) }
+            searchedKeyword.isNotBlank() -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "没有找到「$searchedKeyword」相关内容",
+                        color = NasTVTextSecondary,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
 
-                    // 保存滚动位置（恢复期间跳过）
-                    LaunchedEffect(listState) {
-                        snapshotFlow { listState.firstVisibleItemIndex }.collect { rowIndex ->
-                            if (!isRestoringScroll) {
-                                viewModel.saveScrollState(rowIndex * columns)
-                            }
-                        }
-                    }
-
-                    // 从播放页返回后：先滚动到目标行，再触发焦点恢复
-                    val savedRowIndex = viewModel.savedScrollIndex / columns
-                    val savedIndex = viewModel.savedScrollIndex
-                    LaunchedEffect(Unit) {
-                        if (savedRowIndex > 0 && rows.size > savedRowIndex) {
-                            isRestoringScroll = true
-                            delay(100)
-                            listState.scrollToItem(savedRowIndex)
-                            delay(300)
-                            listState.scrollToItem(savedRowIndex)
-                            delay(200)
-                            isRestoringScroll = false
-                            focusTargetIndex = savedIndex
-                        }
-                    }
-
-                    // 焦点行居中滚动
-                    LaunchedEffect(lastFocusedRow) {
-                        if (lastFocusedRow >= 0) {
-                            try {
-                                if (lastFocusedRow == 0) {
-                                    listState.animateScrollToItem(0)
-                                } else {
-                                    delay(100)
-                                    val info = listState.layoutInfo
-                                    val item = info.visibleItemsInfo.find { it.index == lastFocusedRow }
-                                    if (item != null) {
-                                        val vpHeight = info.viewportEndOffset - info.viewportStartOffset
-                                        val itemTopInVp = item.offset - info.viewportStartOffset
-                                        val targetTop = (vpHeight - item.size) / 2f
-                                        val delta = itemTopInVp - targetTop
-                                        if (abs(delta) > 10f) {
-                                            listState.animateScrollBy(delta)
-                                        }
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                Log.e("SearchScreen", "居中异常", e)
-                            }
-                        }
-                    }
-
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(spacing),
-                        verticalArrangement = Arrangement.spacedBy(spacing)
-                    ) {
-                        items(rows) { rowVideos ->
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(spacing)
-                            ) {
-                                rowVideos.forEachIndexed { colIndex, video ->
-                                    val rowIdx = rows.indexOf(rowVideos)
-                                    val videoIndex = rowIdx * columns + colIndex
-                                    TVVideoCard(
-                                        video = video,
-                                        onClick = {
-                                            viewModel.saveScrollState(videoIndex)
-                                            onNavigateToPlay(video.sourceId, video.id)
-                                        },
-                                        modifier = Modifier.weight(1f),
-                                        shouldAutoFocus = videoIndex == focusTargetIndex,
-                                        sourceName = sourceNameMap[video.sourceId],
-                                        onFocusGained = { if (rowIdx != lastFocusedRow) { lastFocusedRow = rowIdx } }
-                                    )
-                                }
-                                // 填充剩余空间
-                                val remaining = columns - rowVideos.size
-                                if (remaining > 0) {
-                                    repeat(remaining) {
-                                        Spacer(modifier = Modifier.weight(1f))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    // 手机模式：使用三列网格
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(3),
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(items = searchResults) { video ->
-                            VideoCard(
-                                video = video,
-                                onClick = { onNavigateToPlay(video.sourceId, video.id) },
-                                sourceName = sourceNameMap[video.sourceId]
-                            )
-                        }
-                    }
+            else -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "输入关键词，将在所有已启用站源中并发搜索",
+                        color = NasTVTextSecondary,
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
         }
