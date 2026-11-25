@@ -138,3 +138,19 @@ API 提供商选择通过 DataStore 持久化存储：
 - 值: `"tencent"` 或 `"iqiyi_360"`
 - 默认: `"iqiyi_360"`（爱奇艺+360kan）
 - 文件: `PreferencesRepository.kt`
+
+## 扫码输入（局域网网页输入）
+
+TV 端没有中文输入法，所以提供「扫码输入」：TV 起一个极简 HTTP 服务，二维码指向它，手机扫码后在网页里输入关键词，回传后直接触发搜索。
+
+| 组件 | 位置 | 说明 |
+|------|------|------|
+| `LanSearchServer` | `utils/LanSearchServer.kt` | `ServerSocket` 实现，默认端口 8976，被占用时向后试 10 个；只处理 `GET /`（输入页）和 `POST /submit`（`keyword=` 表单字段） |
+| `NetworkUtils.localIpv4Address()` | `utils/NetworkUtils.kt` | 取局域网 IPv4，优先 wlan，其次 eth |
+| `generateQrCode()` | `utils/QrCodeUtils.kt` | zxing `QRCodeWriter` 生成位图 |
+| `TvQrInputDialog` | `ui/components/TvQrInputDialog.kt` | 展示二维码 + 地址；`url == null` 时提示启动失败 |
+| 生命周期 | `TvSearchViewModel.startLanInput()` / `stopLanInput()` | 点击「扫码输入」时启动，关闭弹窗或离开页面（`DisposableEffect`）时停止 |
+| 回传 | `TvSearchViewModel.remoteKeyword` | `MutableSharedFlow`，`TvSearchContent` 收到后 `setInputText` + `addToHistory` + `onSearch` |
+
+注意：服务只监听局域网，没有鉴权，同一 Wi-Fi 下的设备都能访问并提交关键词；页面不提供任何管理操作，仅触发搜索。
+

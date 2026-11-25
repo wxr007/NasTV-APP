@@ -7,6 +7,7 @@ import com.nastv.data.local.PreferencesRepository
 import com.nastv.data.model.Video
 import com.nastv.data.model.VideoSource
 import com.nastv.data.repository.SourceRepository
+import com.nastv.utils.LanSearchServer
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -14,8 +15,11 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -51,6 +55,16 @@ class TvSearchViewModel @Inject constructor(
 
     private val _searchHistory = MutableStateFlow<List<String>>(emptyList())
     val searchHistory: StateFlow<List<String>> = _searchHistory.asStateFlow()
+
+    // === 扫码输入：TV 起一个局域网网页，手机扫码输入关键词后回传 ===
+    private val _remoteKeyword = MutableSharedFlow<String>(extraBufferCapacity = 4)
+    val remoteKeyword: SharedFlow<String> = _remoteKeyword.asSharedFlow()
+
+    /** 手机应访问的地址；null 表示服务没能启动 */
+    private val _lanInputUrl = MutableStateFlow<String?>(null)
+    val lanInputUrl: StateFlow<String?> = _lanInputUrl.asStateFlow()
+
+    private val lanServer = LanSearchServer { keyword -> _remoteKeyword.tryEmit(keyword) }
 
     private val _apiProvider = MutableStateFlow(ApiProvider.IQIYI_360)
     val apiProvider: StateFlow<ApiProvider> = _apiProvider.asStateFlow()
@@ -485,5 +499,23 @@ class TvSearchViewModel @Inject constructor(
         viewModelScope.launch {
             preferencesRepository.saveSearchHistory(emptyList())
         }
+    }
+
+    // === 扫码输入 ===
+
+    /** 启动局域网输入服务；启动失败时 lanInputUrl 保持 null，由 UI 提示用户 */
+    fun startLanInput() {
+        if (_lanInputUrl.value != null) return
+        _lanInputUrl.value = lanServer.start()
+    }
+
+    fun stopLanInput() {
+        lanServer.stop()
+        _lanInputUrl.value = null
+    }
+
+    override fun onCleared() {
+        lanServer.stop()
+        super.onCleared()
     }
 }

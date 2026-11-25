@@ -29,6 +29,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,6 +47,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.activity.compose.BackHandler
 import com.nastv.ui.components.TvApiProviderDialog
+import com.nastv.ui.components.TvQrInputDialog
 import com.nastv.ui.components.TvSearchKeyboard
 import com.nastv.ui.components.TvSourceSelectDialog
 import com.nastv.ui.theme.NasTVBackground
@@ -67,12 +70,30 @@ fun TvSearchContent(
     val suggestionWords by viewModel.suggestionWords.collectAsState()
     val searchHistory by viewModel.searchHistory.collectAsState()
     val apiProvider by viewModel.apiProvider.collectAsState()
+    val lanInputUrl by viewModel.lanInputUrl.collectAsState()
     val allSources by viewModel.allSources.collectAsState()
     val selectedSourceIds by viewModel.selectedSourceIds.collectAsState()
 
     var showSourceDialog by remember { mutableStateOf(false) }
     var showApiProviderDialog by remember { mutableStateOf(false) }
+    var showQrDialog by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(searchHistory.isNotEmpty()) }
+
+    // 扫码输入：手机网页提交的关键词直接开始搜索
+    LaunchedEffect(Unit) {
+        viewModel.remoteKeyword.collect { keyword ->
+            showQrDialog = false
+            viewModel.stopLanInput()
+            viewModel.setInputText(keyword)
+            viewModel.addToHistory(keyword)
+            onSearch(keyword)
+        }
+    }
+
+    // 离开页面时确保端口被释放
+    DisposableEffect(Unit) {
+        onDispose { viewModel.stopLanInput() }
+    }
 
     val goldColor = NasTVPrimaryGold
 
@@ -95,6 +116,16 @@ fun TvSearchContent(
             onConfirm = { provider ->
                 viewModel.setApiProvider(provider)
                 showApiProviderDialog = false
+            }
+        )
+    }
+
+    if (showQrDialog) {
+        TvQrInputDialog(
+            url = lanInputUrl,
+            onDismiss = {
+                showQrDialog = false
+                viewModel.stopLanInput()
             }
         )
     }
@@ -143,6 +174,22 @@ fun TvSearchContent(
                         .onFocusChanged { apiFocused = it.isFocused }
                         .clickable { showApiProviderDialog = true }
                         .border(2.dp, if (apiFocused) goldColor else Color.Transparent, RoundedCornerShape(6.dp))
+                        .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
+                        .padding(horizontal = 10.dp, vertical = 6.dp)
+                )
+                var qrFocused by remember { mutableStateOf(false) }
+                Text(
+                    text = "扫码输入",
+                    color = goldColor,
+                    fontSize = 14.sp,
+                    modifier = Modifier
+                        .onFocusChanged { qrFocused = it.isFocused }
+                        .clickable {
+                            // 先启动服务再弹窗，避免弹窗先渲染成「启动失败」
+                            viewModel.startLanInput()
+                            showQrDialog = true
+                        }
+                        .border(2.dp, if (qrFocused) goldColor else Color.Transparent, RoundedCornerShape(6.dp))
                         .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
                         .padding(horizontal = 10.dp, vertical = 6.dp)
                 )

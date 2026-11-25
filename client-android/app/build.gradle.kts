@@ -198,6 +198,9 @@ dependencies {
     // AVIF decoder (libheif-based, more stable than libavif)
     implementation("com.github.awxkee:avif-coder:1.8.0")
 
+    // QR 二维码生成（TV 端扫码输入搜索词）
+    implementation("com.google.zxing:core:3.5.3")
+
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.8.1")
