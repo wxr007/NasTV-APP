@@ -136,9 +136,11 @@ class LanSearchServer(
                     if (keyword.isEmpty()) {
                         respondJson(socket, "400 Bad Request", """{"ok":false,"error":"empty"}""")
                     } else {
-                        onKeyword(keyword.take(MAX_KEYWORD_LENGTH))
-                        Log.d(TAG, "收到关键词: $keyword")
+                        // 先回响应再触发搜索：TV 收到关键词会立即跳转，页面销毁会停掉本服务，
+                        // 若此时还没写响应，手机端会误报「发送失败」
                         respondJson(socket, "200 OK", """{"ok":true}""")
+                        Log.d(TAG, "收到关键词: $keyword")
+                        onKeyword(keyword.take(MAX_KEYWORD_LENGTH))
                     }
                 }
 

@@ -1,5 +1,6 @@
 package com.nastv.ui.screens.search
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -17,6 +18,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -42,12 +44,13 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.activity.compose.BackHandler
 import com.nastv.ui.components.TvApiProviderDialog
-import com.nastv.ui.components.TvQrInputDialog
 import com.nastv.ui.components.TvSearchKeyboard
 import com.nastv.ui.components.TvSourceSelectDialog
 import com.nastv.ui.theme.NasTVBackground
@@ -55,6 +58,7 @@ import com.nastv.ui.theme.NasTVPrimaryGold
 import com.nastv.ui.theme.NasTVSurface
 import com.nastv.ui.theme.NasTVSurfaceLight
 import com.nastv.ui.theme.NasTVTextSecondary
+import com.nastv.utils.generateQrCode
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -76,22 +80,20 @@ fun TvSearchContent(
 
     var showSourceDialog by remember { mutableStateOf(false) }
     var showApiProviderDialog by remember { mutableStateOf(false) }
-    var showQrDialog by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(searchHistory.isNotEmpty()) }
 
     // 扫码输入：手机网页提交的关键词直接开始搜索
     LaunchedEffect(Unit) {
         viewModel.remoteKeyword.collect { keyword ->
-            showQrDialog = false
-            viewModel.stopLanInput()
             viewModel.setInputText(keyword)
             viewModel.addToHistory(keyword)
             onSearch(keyword)
         }
     }
 
-    // 离开页面时确保端口被释放
+    // 进入页面就起局域网服务（二维码常驻显示），离开时释放端口
     DisposableEffect(Unit) {
+        viewModel.startLanInput()
         onDispose { viewModel.stopLanInput() }
     }
 
@@ -120,15 +122,6 @@ fun TvSearchContent(
         )
     }
 
-    if (showQrDialog) {
-        TvQrInputDialog(
-            url = lanInputUrl,
-            onDismiss = {
-                showQrDialog = false
-                viewModel.stopLanInput()
-            }
-        )
-    }
 
     Row(
         modifier = Modifier
@@ -177,22 +170,6 @@ fun TvSearchContent(
                         .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
                         .padding(horizontal = 10.dp, vertical = 6.dp)
                 )
-                var qrFocused by remember { mutableStateOf(false) }
-                Text(
-                    text = "扫码输入",
-                    color = goldColor,
-                    fontSize = 14.sp,
-                    modifier = Modifier
-                        .onFocusChanged { qrFocused = it.isFocused }
-                        .clickable {
-                            // 先启动服务再弹窗，避免弹窗先渲染成「启动失败」
-                            viewModel.startLanInput()
-                            showQrDialog = true
-                        }
-                        .border(2.dp, if (qrFocused) goldColor else Color.Transparent, RoundedCornerShape(6.dp))
-                        .border(1.dp, Color.White.copy(alpha = 0.3f), RoundedCornerShape(6.dp))
-                        .padding(horizontal = 10.dp, vertical = 6.dp)
-                )
             }
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -224,6 +201,19 @@ fun TvSearchContent(
                 onDelete = { viewModel.deleteLastChar() },
                 modifier = Modifier.fillMaxWidth()
             )
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // 键盘下方常驻二维码：手机扫码即可输入（TV 上没有中文输入法）
+            // 用 weight 兜住剩余空间，屏幕矮时二维码被裁切而不是把键盘顶出屏幕
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                TvScanInputPanel(url = lanInputUrl)
+            }
         }
 
         // 右侧：热词/联想词/历史区域 (~65%)
@@ -342,4 +332,80 @@ private fun HistoryChip(text: String, onClick: () -> Unit) {
             .border(1.dp, NasTVTextSecondary.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
             .padding(horizontal = 14.dp, vertical = 8.dp)
     )
+}
+
+/**
+ * 键盘下方常驻的扫码输入面板：左边二维码，右边说明。
+ * 手机扫码后在网页里输入关键词，回传 TV 直接开始搜索。
+ */
+@Composable
+private fun TvScanInputPanel(
+    url: String?,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(NasTVSurface, RoundedCornerShape(10.dp))
+            .padding(10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (url == null) {
+            Text(
+                text = "未连接局域网，扫码输入暂不可用",
+                color = NasTVTextSecondary,
+                fontSize = 12.sp,
+                modifier = Modifier.padding(vertical = 6.dp)
+            )
+            return@Row
+        }
+
+        val qrSize = 120.dp
+        val px = with(LocalDensity.current) { qrSize.roundToPx() }
+        val qr = remember(url, px) { generateQrCode(url, px) }
+
+        Box(
+            modifier = Modifier
+                .size(qrSize)
+                .background(Color.White, RoundedCornerShape(6.dp))
+                .padding(6.dp),
+            contentAlignment = Alignment.Center
+        ) {
+            if (qr != null) {
+                Image(
+                    bitmap = qr,
+                    contentDescription = "扫码输入二维码",
+                    modifier = Modifier.size(qrSize - 12.dp)
+                )
+            } else {
+                Text("生成失败", color = Color.Black, fontSize = 11.sp)
+            }
+        }
+
+        Spacer(modifier = Modifier.width(10.dp))
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "手机扫码输入",
+                color = NasTVPrimaryGold,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = url.removePrefix("http://"),
+                color = NasTVTextSecondary,
+                fontSize = 11.sp,
+                maxLines = 1
+            )
+            Spacer(modifier = Modifier.height(2.dp))
+            Text(
+                text = "同 Wi-Fi 扫码，输入片名后电视自动搜索",
+                color = NasTVTextSecondary,
+                fontSize = 11.sp,
+                lineHeight = 15.sp,
+                textAlign = TextAlign.Start
+            )
+        }
+    }
 }
